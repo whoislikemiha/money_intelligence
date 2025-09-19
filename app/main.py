@@ -1,0 +1,24 @@
+from fastapi import FastAPI
+from fastapi import Depends
+from sqlalchemy.orm import Session
+
+from app.crud import UserCrud
+from app.database import get_db
+from app.schemas.user import UserBase
+from app.database import engine
+from app.database.models.base import Base
+
+# Add this before starting your app
+Base.metadata.create_all(bind=engine)
+app = FastAPI()
+
+
+@app.get("/")
+async def root():
+    return {"message": "Disi ti"}
+
+
+@app.post("/user")
+async def create_user(user: UserBase, db: Session = Depends(get_db)):
+    user = UserCrud.create(db=db, obj_in=user)
+    return user
