@@ -1,0 +1,5 @@
+https://www.anthropic.com/engineering/building-effective-agents
+
+https://8738733.fs1.hubspotusercontent-na1.net/hubfs/8738733/eBooks/Weaviate%20Agentic%20Architectures-ebook.pdf
+
+https://github.com/anthropics/anthropic-cookbook/tree/main/patterns/agents

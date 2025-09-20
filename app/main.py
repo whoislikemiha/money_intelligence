@@ -8,7 +8,7 @@ from app.schemas.user import UserBase
 from app.database import engine
 from app.database.models.base import Base
 
-# Add this before starting your app
+# TODO: remove when setting up the model and migrations
 Base.metadata.create_all(bind=engine)
 app = FastAPI()
 
