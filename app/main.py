@@ -2,10 +2,10 @@ from fastapi import FastAPI
 from fastapi import Depends
 from sqlalchemy.orm import Session
 
-from app.crud import UserCrud
-from app.database import get_db
+from app.crud.user_crud import UserCrud
+from app.database.database import get_db
 from app.schemas.user import UserBase
-from app.database import engine
+from app.database.database import engine
 from app.database.models.base import Base
 
 # TODO: remove when setting up the model and migrations
