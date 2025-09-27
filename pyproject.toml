@@ -6,9 +6,12 @@ readme = "README.md"
 requires-python = ">=3.8"
 dependencies = [
     "alembic>=1.14.1",
+    "email-validator>=2.0.0",
     "fastapi[standard]>=0.116.1",
+    "bcrypt",
     "pydantic>=2.10.6",
     "pydantic-settings>=2.8.1",
+    "pyjwt>=2.8.0",
     "sqlalchemy>=2.0.43",
     "uvicorn[standard]>=0.33.0",
 ]

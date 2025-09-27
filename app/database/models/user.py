@@ -8,7 +8,8 @@ class User(BaseDbModel):
     __tablename__ = 'users'
 
     name = Column(String, unique=False, nullable=False)
-    email = Column(String, unique=False, nullable=False)
+    email = Column(String, unique=True, nullable=False, index=True)
+    hashed_password = Column(String, nullable=False)
     currency = Column(String(3), default='EUR')
 
     account = relationship("Account", back_populates="user", uselist=False, cascade="all, delete-orphan")
@@ -18,4 +19,4 @@ class User(BaseDbModel):
     tags = relationship("Tag", back_populates="user", cascade="all, delete-orphan")
 
     def __repr__(self):
-        return f"<User(name={self.name}, id={self.id} with balance{self.balance}"
+        return f"<User(name={self.name}, id={self.id}, email={self.email})>"
