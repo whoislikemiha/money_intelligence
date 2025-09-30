@@ -1,13 +1,9 @@
-from fastapi import FastAPI, Depends
+from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from sqlalchemy.orm import Session
 
-from app.auth.dependencies import get_current_active_user
 from app.config import settings
-from app.crud.user_crud import UserCrud
-from app.database.database import get_db
-from app.routers import auth
-from app.schemas.user import User, UserCreate
+
+from app.routers import auth, account, transaction
 
 
 app = FastAPI(
@@ -25,7 +21,8 @@ app.add_middleware(
 )
 
 app.include_router(auth.router, prefix=settings.API_V1_STR, tags=["authentication"])
-
+app.include_router(account.router, prefix=f"{settings.API_V1_STR}/account", tags=["account"])
+app.include_router(transaction.router, prefix=f"{settings.API_V1_STR}/transaction", tags=["transaction"])
 
 @app.get("/api")
 async def root():

@@ -20,7 +20,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Check for stored token on mount
     const storedToken = localStorage.getItem('token');
     if (storedToken) {
       setToken(storedToken);
@@ -28,7 +27,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       AuthAPI.getCurrentUser(storedToken)
         .then(setUser)
         .catch(() => {
-          // Token is invalid, remove it
           localStorage.removeItem('token');
           setToken(null);
         })
@@ -47,11 +45,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
       const { access_token } = response;
 
-      // Store token
       localStorage.setItem('token', access_token);
       setToken(access_token);
 
-      // Get user info
       const userData = await AuthAPI.getCurrentUser(access_token);
       setUser(userData);
     } catch (error) {
@@ -68,7 +64,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         currency,
       });
 
-      // Auto-login after registration
       await login(email, password);
     } catch (error) {
       throw new Error('Registration failed');

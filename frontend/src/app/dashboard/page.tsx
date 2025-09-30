@@ -2,17 +2,68 @@
 
 import { useAuth } from '@/contexts/AuthContext';
 import { useRouter } from 'next/navigation';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
+import { accountApi, Account } from '@/lib/api';
+import TransactionManager from '@/components/TransactionManager';
 
 export default function DashboardPage() {
   const { user, logout, loading } = useAuth();
   const router = useRouter();
+  const [account, setAccount] = useState<Account | null>(null);
+  const [accountLoading, setAccountLoading] = useState(false);
+  const [isEditing, setIsEditing] = useState(false);
+  const [editValue, setEditValue] = useState('');
 
   useEffect(() => {
     if (!loading && !user) {
       router.push('/login');
     }
   }, [user, loading, router]);
+
+  useEffect(() => {
+    if (user && !loading) {
+      loadAccount();
+    }
+  }, [user, loading]);
+
+  const loadAccount = async () => {
+    try {
+      setAccountLoading(true);
+      const accountData = await accountApi.getMyAccount();
+      setAccount(accountData);
+    } catch (error) {
+      console.error('Failed to load account:', error);
+    } finally {
+      setAccountLoading(false);
+    }
+  };
+
+  const handleEditClick = () => {
+    setEditValue(account?.initial_balance.toString() || '0');
+    setIsEditing(true);
+  };
+
+  const handleSave = async () => {
+    try {
+      const newValue = parseFloat(editValue);
+      if (isNaN(newValue)) {
+        alert('Please enter a valid number');
+        return;
+      }
+
+      const updatedAccount = await accountApi.updateInitialBalance(newValue);
+      setAccount(updatedAccount);
+      setIsEditing(false);
+    } catch (error) {
+      console.error('Failed to update initial balance:', error);
+      alert('Failed to update initial balance');
+    }
+  };
+
+  const handleCancel = () => {
+    setIsEditing(false);
+    setEditValue('');
+  };
 
   if (loading) {
     return (
@@ -74,6 +125,86 @@ export default function DashboardPage() {
                 </div>
               </dl>
             </div>
+
+            {/* Account Information Section */}
+            <div className="bg-white rounded-lg shadow p-6 mt-6">
+              <h3 className="text-lg font-medium text-gray-900 mb-4">Account Information</h3>
+              {accountLoading ? (
+                <div className="text-center">Loading account information...</div>
+              ) : account ? (
+                <dl className="grid grid-cols-1 gap-x-4 gap-y-6 sm:grid-cols-2">
+                  <div>
+                    <dt className="text-sm font-medium text-gray-500">Account Name</dt>
+                    <dd className="mt-1 text-sm text-gray-900">{account.name}</dd>
+                  </div>
+                  <div>
+                    <dt className="text-sm font-medium text-gray-500">Current Balance</dt>
+                    <dd className="mt-1 text-sm text-gray-900">
+                      {account.current_balance.toFixed(2)} {user.currency}
+                    </dd>
+                  </div>
+                  <div>
+                    <dt className="text-sm font-medium text-gray-500">Initial Balance</dt>
+                    <dd className="mt-1 text-sm text-gray-900 flex items-center gap-2">
+                      {isEditing ? (
+                        <div className="flex items-center gap-2">
+                          <input
+                            type="number"
+                            step="0.01"
+                            value={editValue}
+                            onChange={(e) => setEditValue(e.target.value)}
+                            className="border border-gray-300 rounded px-2 py-1 text-sm w-32"
+                            autoFocus
+                          />
+                          <button
+                            onClick={handleSave}
+                            className="bg-green-600 hover:bg-green-700 text-white px-3 py-1 rounded text-sm"
+                          >
+                            Save
+                          </button>
+                          <button
+                            onClick={handleCancel}
+                            className="bg-gray-500 hover:bg-gray-600 text-white px-3 py-1 rounded text-sm"
+                          >
+                            Cancel
+                          </button>
+                        </div>
+                      ) : (
+                        <div className="flex items-center gap-2">
+                          <span>{account.initial_balance.toFixed(2)} {user.currency}</span>
+                          <button
+                            onClick={handleEditClick}
+                            className="bg-blue-600 hover:bg-blue-700 text-white px-2 py-1 rounded text-xs"
+                          >
+                            Edit
+                          </button>
+                        </div>
+                      )}
+                    </dd>
+                  </div>
+                  <div>
+                    <dt className="text-sm font-medium text-gray-500">Created At</dt>
+                    <dd className="mt-1 text-sm text-gray-900">
+                      {new Date(account.created_at).toLocaleDateString()}
+                    </dd>
+                  </div>
+                </dl>
+              ) : (
+                <div className="text-center text-gray-500">
+                  No account information available
+                </div>
+              )}
+            </div>
+
+            {/* Transactions Section */}
+            {account && (
+              <div className="mt-6">
+                <TransactionManager
+                  accountId={account.id}
+                  onTransactionChange={loadAccount}
+                />
+              </div>
+            )}
           </div>
         </div>
       </main>

@@ -13,7 +13,7 @@ class CategoryCrud:
             {"name": "Bills & Utilities", "icon": "⚡", "color": "#98D8C8"},
             {"name": "Healthcare", "icon": "🏥", "color": "#FF9F9B"},
             {"name": "Income", "icon": "💰", "color": "#90EE90"},
-            {"name": "Other", "icon": "📝", "color": "#D3D3D3"}
+            {"name": "Other", "icon": "📝", "color": "#D3D3D3"},
         ]
 
         categories = []
@@ -22,7 +22,7 @@ class CategoryCrud:
                 user_id=user_id,
                 name=cat_data["name"],
                 icon=cat_data["icon"],
-                color=cat_data["color"]
+                color=cat_data["color"],
             )
             db.add(category)
             categories.append(category)
@@ -36,3 +36,4 @@ class CategoryCrud:
     @staticmethod
     def get_by_user_id(db: Session, user_id: int) -> list[Category]:
         return db.query(Category).filter(Category.user_id == user_id).all()
+

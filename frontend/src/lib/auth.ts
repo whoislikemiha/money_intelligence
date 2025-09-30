@@ -22,7 +22,7 @@ export interface User {
   name: string;
   email: string;
   currency: string;
-  create_at: string;
+  created_at: string;
   updated_at?: string;
   is_active: boolean;
 }

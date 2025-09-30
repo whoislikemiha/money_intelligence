@@ -16,7 +16,7 @@ class UserCreate(UserBase):
 
 class UserInDB(UserBase):
     id: int
-    create_at: datetime
+    created_at: datetime
     updated_at: Optional[datetime] = None
     is_active: bool
     model_config = ConfigDict(from_attributes=True)

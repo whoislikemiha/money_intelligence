@@ -24,7 +24,6 @@ class UserCrud:
             email=obj_in.email,
             hashed_password=hashed_password,
             currency=obj_in.currency,
-
         )
         db.add(user)
         db.commit()
@@ -37,7 +36,7 @@ class UserCrud:
         return user
 
     @staticmethod
-    def authenticate(db: Session, email: str, password: str) -> User:
+    def authenticate(db: Session, email: str, password: str) -> User | None:
         user = UserCrud.get_by_email(db, email)
         if not user:
             return None
