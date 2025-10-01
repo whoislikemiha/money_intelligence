@@ -47,7 +47,7 @@ export interface TransactionUpdate {
   amount?: number;
   description?: string;
   date?: string;
-  tag_ids?: number[];
+  tags?: number[];
 }
 
 // Category types

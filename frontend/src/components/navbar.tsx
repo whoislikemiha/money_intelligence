@@ -13,7 +13,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
-import { Wallet, Tags, FolderTree, DollarSign, LogOut, User } from 'lucide-react'
+import {Wallet, Tags, FolderTree, DollarSign, LogOut, User, BrainCircuit} from 'lucide-react'
 
 export function Navbar() {
   const router = useRouter()
@@ -35,8 +35,7 @@ export function Navbar() {
           {/* Left side - Logo and Navigation */}
           <div className="flex items-center gap-6">
             <div className="flex items-center gap-2">
-              <DollarSign className="h-6 w-6 text-primary" />
-              <span className="text-xl font-bold">Money Intelligence</span>
+              <BrainCircuit className="h-6 w-6 text-primary " />
             </div>
 
             <div className="hidden md:flex items-center gap-4">

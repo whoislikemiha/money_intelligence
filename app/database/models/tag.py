@@ -1,7 +1,7 @@
 from sqlalchemy import Column, Integer, ForeignKey, String, UniqueConstraint
 from sqlalchemy.orm import relationship
 
-from app.database.models.base import BaseDbModel
+from app.database.models.base import BaseDbModel, Base
 
 
 class Tag(BaseDbModel):
@@ -22,7 +22,8 @@ class Tag(BaseDbModel):
         return f"<Tag(name='{self.name}')>"
 
 
-class TransactionTag(BaseDbModel):
+
+class TransactionTag(Base):
     __tablename__ = 'transaction_tags'
 
     transaction_id = Column(Integer, ForeignKey('transactions.id'), primary_key=True)

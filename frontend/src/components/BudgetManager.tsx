@@ -67,7 +67,11 @@ export default function BudgetManager() {
       const data = await categoryApi.getAll();
       setCategories(data);
       if (data.length > 0 && !formData.category_id) {
-        setFormData(prev => ({ ...prev, category_id: data[0].id.toString() }));
+        // Set first available category without a budget
+        const availableCategory = data.find(
+          category => !budgets.some(budget => budget.category_id === category.id)
+        );
+        setFormData(prev => ({ ...prev, category_id: availableCategory?.id.toString() || data[0].id.toString() }));
       }
     } catch (error) {
       console.error('Failed to load categories:', error);
@@ -105,8 +109,12 @@ export default function BudgetManager() {
         await budgetApi.create(budgetData);
       }
 
+      // Reset to first available category without a budget
+      const availableCategory = categories.find(
+        category => !budgets.some(budget => budget.category_id === category.id)
+      );
       setFormData({
-        category_id: categories[0]?.id.toString() || '',
+        category_id: availableCategory?.id.toString() || '',
         amount: '',
         notes: ''
       });
@@ -124,8 +132,12 @@ export default function BudgetManager() {
     setDialogOpen(open);
     if (!open) {
       setEditingBudget(null);
+      // Reset to first available category without a budget
+      const availableCategory = categories.find(
+        category => !budgets.some(budget => budget.category_id === category.id)
+      );
       setFormData({
-        category_id: categories[0]?.id.toString() || '',
+        category_id: availableCategory?.id.toString() || '',
         amount: '',
         notes: ''
       });
@@ -185,11 +197,20 @@ export default function BudgetManager() {
                       <SelectValue placeholder="Select a category" />
                     </SelectTrigger>
                     <SelectContent>
-                      {categories.map((category) => (
-                        <SelectItem key={category.id} value={category.id.toString()}>
-                          {category.icon} {category.name}
-                        </SelectItem>
-                      ))}
+                      {categories
+                        .filter(category => {
+                          // When editing, allow the current category
+                          if (editingBudget && category.id === editingBudget.category_id) {
+                            return true;
+                          }
+                          // Filter out categories that already have budgets
+                          return !budgets.some(budget => budget.category_id === category.id);
+                        })
+                        .map((category) => (
+                          <SelectItem key={category.id} value={category.id.toString()}>
+                            {category.icon} {category.name}
+                          </SelectItem>
+                        ))}
                     </SelectContent>
                   </Select>
                 </div>

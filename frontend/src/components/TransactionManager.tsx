@@ -1,8 +1,8 @@
 "use client";
 
 import { useState, useEffect } from 'react';
-import { transactionApi, categoryApi } from '@/lib/api';
-import { Transaction, TransactionCreate, TransactionType, Category } from '@/lib/types';
+import { transactionApi, categoryApi, tagApi } from '@/lib/api';
+import { Transaction, TransactionCreate, TransactionType, Category, Tag } from '@/lib/types';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import {
@@ -33,6 +33,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Plus, Trash2, TrendingUp, TrendingDown, Pencil } from 'lucide-react';
+import TransactionFiltersComponent, { TransactionFilters } from './TransactionFilters';
 
 interface TransactionManagerProps {
   accountId: number;
@@ -43,20 +44,31 @@ export default function TransactionManager({ accountId, onTransactionChange }: T
   const { user } = useAuth();
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
+  const [tags, setTags] = useState<Tag[]>([]);
   const [loading, setLoading] = useState(false);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingTransaction, setEditingTransaction] = useState<Transaction | null>(null);
+  const [tagDialogOpen, setTagDialogOpen] = useState(false);
+  const [newTagData, setNewTagData] = useState({ name: '', color: '#3b82f6' });
+  const [filters, setFilters] = useState<TransactionFilters>({
+    startDate: '',
+    endDate: '',
+    categoryIds: [],
+    tagIds: []
+  });
   const [formData, setFormData] = useState({
     type: TransactionType.EXPENSE,
     amount: '',
     description: '',
     date: new Date().toISOString().split('T')[0],
-    category_id: ''
+    category_id: '',
+    tag_ids: [] as number[]
   });
 
   useEffect(() => {
     loadTransactions();
     loadCategories();
+    loadTags();
   }, []);
 
   const loadTransactions = async () => {
@@ -83,6 +95,15 @@ export default function TransactionManager({ accountId, onTransactionChange }: T
     }
   };
 
+  const loadTags = async () => {
+    try {
+      const data = await tagApi.getAll();
+      setTags(data);
+    } catch (error) {
+      console.error('Failed to load tags:', error);
+    }
+  };
+
   const handleEdit = (transaction: Transaction) => {
     setEditingTransaction(transaction);
     setFormData({
@@ -90,7 +111,8 @@ export default function TransactionManager({ accountId, onTransactionChange }: T
       amount: transaction.amount.toString(),
       description: transaction.description || '',
       date: transaction.date.split('T')[0],
-      category_id: transaction.category_id.toString()
+      category_id: transaction.category_id.toString(),
+      tag_ids: transaction.tags?.map((tag: any) => tag.id) || []
     });
     setDialogOpen(true);
   };
@@ -109,6 +131,7 @@ export default function TransactionManager({ accountId, onTransactionChange }: T
           amount: parseFloat(formData.amount),
           description: formData.description || undefined,
           date: formData.date,
+          tags: formData.tag_ids
         };
         await transactionApi.update(editingTransaction.id, updatedData);
       } else {
@@ -121,6 +144,7 @@ export default function TransactionManager({ accountId, onTransactionChange }: T
           description: formData.description,
           date: formData.date,
           user_id: user.id,
+          tags: formData.tag_ids
         };
         await transactionApi.create(transactionData);
       }
@@ -130,7 +154,8 @@ export default function TransactionManager({ accountId, onTransactionChange }: T
         amount: '',
         description: '',
         date: new Date().toISOString().split('T')[0],
-        category_id: categories[0]?.id.toString() || ''
+        category_id: categories[0]?.id.toString() || '',
+        tag_ids: []
       });
       setEditingTransaction(null);
       setDialogOpen(false);
@@ -148,14 +173,18 @@ export default function TransactionManager({ accountId, onTransactionChange }: T
   const handleDialogClose = (open: boolean) => {
     setDialogOpen(open);
     if (!open) {
-      setEditingTransaction(null);
-      setFormData({
-        type: TransactionType.EXPENSE,
-        amount: '',
-        description: '',
-        date: new Date().toISOString().split('T')[0],
-        category_id: categories[0]?.id.toString() || ''
-      });
+      // Delay reset until after dialog animation completes
+      setTimeout(() => {
+        setEditingTransaction(null);
+        setFormData({
+          type: TransactionType.EXPENSE,
+          amount: '',
+          description: '',
+          date: new Date().toISOString().split('T')[0],
+          category_id: categories[0]?.id.toString() || '',
+          tag_ids: []
+        });
+      }, 200);
     }
   };
 
@@ -173,6 +202,50 @@ export default function TransactionManager({ accountId, onTransactionChange }: T
       alert('Failed to delete transaction');
     }
   };
+
+  const handleCreateTag = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!user || !newTagData.name.trim()) return;
+
+    try {
+      const newTag = await tagApi.create({
+        name: newTagData.name.trim(),
+        color: newTagData.color,
+        user_id: user.id
+      });
+      await loadTags();
+      setNewTagData({ name: '', color: '#3b82f6' });
+      setTagDialogOpen(false);
+      // Auto-select the newly created tag
+      setFormData({
+        ...formData,
+        tag_ids: [...formData.tag_ids, newTag.id]
+      });
+    } catch (error) {
+      console.error('Failed to create tag:', error);
+      alert('Failed to create tag');
+    }
+  };
+
+  const filteredTransactions = transactions.filter((transaction) => {
+    // Date filter
+    if (filters.startDate && transaction.date < filters.startDate) return false;
+    if (filters.endDate && transaction.date > filters.endDate) return false;
+
+    // Category filter - transaction must have one of the selected categories
+    if (filters.categoryIds.length > 0) {
+      if (!filters.categoryIds.includes(transaction.category_id)) return false;
+    }
+
+    // Tag filter - transaction must have at least one of the selected tags
+    if (filters.tagIds.length > 0) {
+      const transactionTagIds = transaction.tags?.map((tag: any) => tag.id) || [];
+      const hasMatchingTag = filters.tagIds.some(tagId => transactionTagIds.includes(tagId));
+      if (!hasMatchingTag) return false;
+    }
+
+    return true;
+  });
 
   return (
     <div className="space-y-4">
@@ -238,23 +311,108 @@ export default function TransactionManager({ accountId, onTransactionChange }: T
                   />
                 </div>
 
-                <div className="space-y-2">
-                  <Label htmlFor="category">Category</Label>
-                  <Select
-                    value={formData.category_id}
-                    onValueChange={(value) => setFormData({ ...formData, category_id: value })}
-                  >
-                    <SelectTrigger id="category">
-                      <SelectValue placeholder="Select a category" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {categories.map((category) => (
-                        <SelectItem key={category.id} value={category.id.toString()}>
-                          {category.icon} {category.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="category">Category</Label>
+                    <Select
+                      value={formData.category_id}
+                      onValueChange={(value) => setFormData({ ...formData, category_id: value })}
+                    >
+                      <SelectTrigger id="category">
+                        <SelectValue placeholder="Select a category" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {categories.map((category) => (
+                          <SelectItem key={category.id} value={category.id.toString()}>
+                            {category.icon} {category.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between">
+                      <Label>Tags (Optional)</Label>
+                      <Dialog open={tagDialogOpen} onOpenChange={setTagDialogOpen}>
+                        <DialogTrigger asChild>
+                          <Button type="button" size="icon" variant="ghost" className="h-6 w-6">
+                            <Plus className="h-4 w-4" />
+                          </Button>
+                        </DialogTrigger>
+                        <DialogContent className="sm:max-w-[400px]">
+                          <form onSubmit={handleCreateTag}>
+                            <DialogHeader>
+                              <DialogTitle>Create Tag</DialogTitle>
+                              <DialogDescription>
+                                Add a new tag to organize your transactions
+                              </DialogDescription>
+                            </DialogHeader>
+                            <div className="space-y-4 py-4">
+                              <div className="space-y-2">
+                                <Label htmlFor="tag-name">Name</Label>
+                                <Input
+                                  id="tag-name"
+                                  value={newTagData.name}
+                                  onChange={(e) => setNewTagData({ ...newTagData, name: e.target.value })}
+                                  placeholder="e.g., Work, Personal, Urgent"
+                                  required
+                                />
+                              </div>
+                              <div className="space-y-2">
+                                <Label htmlFor="tag-color">Color</Label>
+                                <div className="flex gap-2 items-center">
+                                  <Input
+                                    id="tag-color"
+                                    type="color"
+                                    value={newTagData.color}
+                                    onChange={(e) => setNewTagData({ ...newTagData, color: e.target.value })}
+                                    className="w-20 h-10"
+                                  />
+                                  <Badge style={{ backgroundColor: newTagData.color }}>
+                                    {newTagData.name || 'Preview'}
+                                  </Badge>
+                                </div>
+                              </div>
+                            </div>
+                            <DialogFooter>
+                              <Button type="submit">Create Tag</Button>
+                            </DialogFooter>
+                          </form>
+                        </DialogContent>
+                      </Dialog>
+                    </div>
+                    <div className="flex flex-wrap gap-1.5">
+                      {tags.map((tag) => {
+                        const isSelected = formData.tag_ids.includes(tag.id);
+                        return (
+                          <Badge
+                            key={tag.id}
+                            variant="outline"
+                            className={`cursor-pointer transition-all ${
+                              isSelected
+                                ? 'ring-2 ring-primary ring-offset-1 bg-primary/10'
+                                : 'hover:bg-accent'
+                            }`}
+                            onClick={() => {
+                              setFormData({
+                                ...formData,
+                                tag_ids: isSelected
+                                  ? formData.tag_ids.filter(id => id !== tag.id)
+                                  : [...formData.tag_ids, tag.id]
+                              });
+                            }}
+                          >
+                            {isSelected && <span className="mr-1">✓</span>}
+                            {tag.name}
+                          </Badge>
+                        );
+                      })}
+                      {tags.length === 0 && (
+                        <p className="text-xs text-muted-foreground">No tags available</p>
+                      )}
+                    </div>
+                  </div>
                 </div>
 
                 <div className="space-y-2">
@@ -287,9 +445,32 @@ export default function TransactionManager({ accountId, onTransactionChange }: T
         </Dialog>
       </div>
 
+      <TransactionFiltersComponent
+        filters={filters}
+        categories={categories}
+        tags={tags}
+        onFiltersChange={setFilters}
+      />
+
       {loading ? (
         <div className="flex items-center justify-center py-8">
           <div className="text-muted-foreground">Loading transactions...</div>
+        </div>
+      ) : filteredTransactions.length === 0 ? (
+        <div className="flex flex-col items-center justify-center py-12 border-2 border-dashed rounded-lg">
+          <p className="text-muted-foreground mb-4">
+            {transactions.length === 0 ? 'No transactions yet' : 'No transactions match your filters'}
+          </p>
+          {transactions.length === 0 ? (
+            <Button variant="outline" onClick={() => setDialogOpen(true)}>
+              <Plus className="mr-2 h-4 w-4" />
+              Add your first transaction
+            </Button>
+          ) : (
+            <Button variant="outline" onClick={() => setFilters({ startDate: '', endDate: '', categoryIds: [], tagIds: [] })}>
+              Clear filters
+            </Button>
+          )}
         </div>
       ) : transactions.length === 0 ? (
         <div className="flex flex-col items-center justify-center py-12 border-2 border-dashed rounded-lg">
@@ -301,18 +482,19 @@ export default function TransactionManager({ accountId, onTransactionChange }: T
         </div>
       ) : (
         <div className="border rounded-lg">
-          <Table>
+          <Table> 
             <TableHeader>
               <TableRow>
                 <TableHead>Date</TableHead>
                 <TableHead>Category</TableHead>
+                <TableHead>Tags</TableHead>
                 <TableHead>Description</TableHead>
                 <TableHead className="text-right">Amount</TableHead>
                 <TableHead className="text-right">Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {transactions.map((transaction) => {
+              {filteredTransactions.map((transaction) => {
                 const category = categories.find(c => c.id === transaction.category_id);
                 const isIncome = transaction.type === TransactionType.INCOME;
 
@@ -323,17 +505,34 @@ export default function TransactionManager({ accountId, onTransactionChange }: T
                     </TableCell>
                     <TableCell>
                       {category ? (
-                        <span className="flex items-center gap-2">
-                          <span
-                            className="w-2 h-2 rounded-full"
-                            style={{ backgroundColor: category.color }}
-                          />
+                        <span
+                          className="inline-flex items-center gap-2 px-2 py-1 rounded-full border-2"
+                          style={{ borderColor: category.color, color: category.color }}
+                        >
                           <span>{category.icon}</span>
                           <span>{category.name}</span>
                         </span>
                       ) : (
                         <span className="text-muted-foreground">-</span>
                       )}
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex flex-wrap gap-1">
+                        {transaction.tags && transaction.tags.length > 0 ? (
+                          transaction.tags.map((tag: any) => (
+                            <Badge
+                              key={tag.id}
+                              variant="secondary"
+                              className="text-xs"
+                              style={{ backgroundColor: tag.color || undefined }}
+                            >
+                              {tag.name}
+                            </Badge>
+                          ))
+                        ) : (
+                          <span className="text-muted-foreground">-</span>
+                        )}
+                      </div>
                     </TableCell>
                     <TableCell className="text-muted-foreground">
                       {transaction.description || '-'}
