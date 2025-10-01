@@ -28,8 +28,8 @@ class TagCreate(TagBase):
 
 
 class TagUpdate(BaseModel):
-    name: Optional[str] = None
-    color: Optional[str] = None
+    name: Optional[str]
+    color: Optional[str]
 
     @field_validator('color')
     def validate_color(cls, color):

@@ -42,9 +42,9 @@ class CategoryCreate(CategoryBase):
 
 
 class CategoryUpdate(BaseModel, CategoryValidationMixin):
-    name: Optional[str] = None
-    icon: Optional[str] = None
-    color: Optional[str] = None
+    name: Optional[str]
+    icon: Optional[str]
+    color: Optional[str]
 
 
 class CategoryInDB(CategoryBase):

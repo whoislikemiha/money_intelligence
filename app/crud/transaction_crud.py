@@ -45,9 +45,14 @@ class TransactionCrud:
         if not transaction:
             return None
 
-        update_data = transaction_update.model_dump(exclude_unset=True)
+        update_data = transaction_update.model_dump(exclude_unset=True, exclude={'tags'})
         for field, value in update_data.items():
             setattr(transaction, field, value)
+
+        # Handle tags if provided
+        if transaction_update.tags is not None:
+            tags = db.query(Tag).filter(Tag.id.in_(transaction_update.tags)).all()
+            transaction.tags = tags
 
         db.commit()
         db.refresh(transaction)

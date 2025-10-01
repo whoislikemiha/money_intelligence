@@ -34,7 +34,7 @@ class TransactionUpdate(BaseModel):
     type: Optional[TransactionType] = None
     amount: Optional[Decimal] = None
     description: Optional[str] = None
-    date: Optional[date] = None
+    date: Optional[date]
     tags: Optional[List[int]] = None
 
     @field_validator('amount')
