@@ -64,7 +64,7 @@ export class ApiClient {
 
 export const apiClient = new ApiClient();
 
-import { Account, Transaction, TransactionCreate, TransactionUpdate } from './types';
+import { Account, Transaction, TransactionCreate, TransactionUpdate, Category, CategoryCreate, CategoryUpdate, Budget, BudgetCreate, BudgetUpdate, Tag, TagCreate, TagUpdate } from './types';
 
 // Account API functions
 export const accountApi = {
@@ -88,4 +88,66 @@ export const transactionApi = {
 
   delete: (id: number): Promise<void> =>
     apiClient.delete(`/transaction/${id}`),
+};
+
+// Category API functions
+export const categoryApi = {
+  getAll: (): Promise<Category[]> =>
+    apiClient.get('/category/'),
+
+  create: (data: CategoryCreate): Promise<void> =>
+    apiClient.post('/category/', data),
+
+  update: (id: number, data: CategoryUpdate): Promise<Category> =>
+    apiClient.put(`/category/${id}`, data),
+
+  delete: (id: number): Promise<void> =>
+    apiClient.delete(`/category/${id}`),
+};
+
+// Budget API functions
+export const budgetApi = {
+  getAll: (): Promise<Budget[]> =>
+    apiClient.get('/budget/'),
+
+  getAllWithSpending: (month?: number, year?: number): Promise<Budget[]> => {
+    const params = new URLSearchParams();
+    if (month) params.append('month', month.toString());
+    if (year) params.append('year', year.toString());
+    const query = params.toString() ? `?${params.toString()}` : '';
+    return apiClient.get(`/budget/with-spending${query}`);
+  },
+
+  getById: (id: number): Promise<Budget> =>
+    apiClient.get(`/budget/${id}`),
+
+  getByCategory: (categoryId: number): Promise<Budget> =>
+    apiClient.get(`/budget/category/${categoryId}`),
+
+  create: (data: BudgetCreate): Promise<Budget> =>
+    apiClient.post('/budget/', data),
+
+  update: (id: number, data: BudgetUpdate): Promise<Budget> =>
+    apiClient.put(`/budget/${id}`, data),
+
+  delete: (id: number): Promise<void> =>
+    apiClient.delete(`/budget/${id}`),
+};
+
+// Tag API functions
+export const tagApi = {
+  getAll: (): Promise<Tag[]> =>
+    apiClient.get('/tag/'),
+
+  getById: (id: number): Promise<Tag> =>
+    apiClient.get(`/tag/${id}`),
+
+  create: (data: TagCreate): Promise<Tag> =>
+    apiClient.post('/tag/', data),
+
+  update: (id: number, data: TagUpdate): Promise<Tag> =>
+    apiClient.put(`/tag/${id}`, data),
+
+  delete: (id: number): Promise<void> =>
+    apiClient.delete(`/tag/${id}`),
 };

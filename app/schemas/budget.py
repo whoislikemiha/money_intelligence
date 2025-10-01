@@ -2,12 +2,12 @@ from datetime import datetime
 from decimal import Decimal
 from typing import Optional
 
-from pydantic import BaseModel, ConfigDict, validator, field_validator
+from pydantic import BaseModel, ConfigDict, field_validator
 
 from app.schemas.category import Category
 
 
-class BudgetValidationMixin(BaseModel):
+class BudgetValidationMixin:
     @field_validator('amount')
     def validate_amount(cls, amount):
         if amount <= 0:
@@ -20,7 +20,7 @@ class BudgetValidationMixin(BaseModel):
             return None
         return notes
 
-class BudgetBase(BudgetValidationMixin):
+class BudgetBase(BaseModel, BudgetValidationMixin):
     category_id: int
     amount: Decimal
     notes: Optional[str] = None
@@ -29,7 +29,7 @@ class BudgetCreate(BudgetBase):
     user_id: int
 
 
-class BudgetUpdate(BudgetValidationMixin):
+class BudgetUpdate(BaseModel, BudgetValidationMixin):
     amount: Optional[Decimal] = None
     notes: Optional[str] = None
 

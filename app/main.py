@@ -3,8 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.config import settings
 
-from app.routers import auth, account, transaction
-
+from app.routers import auth, account, transaction, category, tag, budget
 
 app = FastAPI(
     title=settings.PROJECT_NAME,
@@ -23,6 +22,10 @@ app.add_middleware(
 app.include_router(auth.router, prefix=settings.API_V1_STR, tags=["authentication"])
 app.include_router(account.router, prefix=f"{settings.API_V1_STR}/account", tags=["account"])
 app.include_router(transaction.router, prefix=f"{settings.API_V1_STR}/transaction", tags=["transaction"])
+
+app.include_router(category.router, prefix=f"{settings.API_V1_STR}/category", tags=["category"])
+app.include_router(tag.router, prefix=f"{settings.API_V1_STR}/tag", tags=["tag"])
+app.include_router(budget.router, prefix=f"{settings.API_V1_STR}/budget", tags=["budget"])
 
 @app.get("/api")
 async def root():

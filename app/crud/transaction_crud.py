@@ -28,19 +28,27 @@ class TransactionCrud:
         return db.query(Transaction).filter(Transaction.user_id == user_id).all()
 
     @staticmethod
-    def get_by_id(db: Session, transaction_id: int):
-        return db.query(Transaction).filter(Transaction.id == transaction_id).first()
+    def get_by_id(db: Session, transaction_id: int, user_id: int):
+        return db.query(Transaction).filter(Transaction.id == transaction_id, Transaction.user_id == user_id).first()
 
     @staticmethod
-    def delete(db: Session, transaction_id: int):
-        transaction = db.query(Transaction).filter(Transaction.id == transaction_id).first()
+    def delete(db: Session, transaction_id: int, user_id: int):
+        transaction = db.query(Transaction).filter(Transaction.id == transaction_id, Transaction.user_id == user_id).first()
         if transaction:
             db.delete(transaction)
             db.commit()
+        return transaction is not None
 
     @staticmethod
-    def update(db: Session, transaction_id: int, transaction_update: TransactionUpdate):
+    def update(db: Session, transaction_id: int, user_id: int, transaction_update: TransactionUpdate):
+        transaction = db.query(Transaction).filter(Transaction.id == transaction_id, Transaction.user_id == user_id).first()
+        if not transaction:
+            return None
+
         update_data = transaction_update.model_dump(exclude_unset=True)
-        db.query(Transaction).filter(Transaction.id == transaction_id).update(update_data)
+        for field, value in update_data.items():
+            setattr(transaction, field, value)
+
         db.commit()
-        return db.query(Transaction).filter(Transaction.id == transaction_id).first()
+        db.refresh(transaction)
+        return transaction

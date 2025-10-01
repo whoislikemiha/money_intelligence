@@ -4,14 +4,16 @@ from typing import Optional
 from pydantic import BaseModel, ConfigDict, field_validator
 
 
-class CategoryValidationMixin(BaseModel):
+class CategoryValidationMixin:
     @field_validator('color')
+    @classmethod
     def validate_color(cls, color):
         if color is not None and not (color.startswith('#') and len(color) == 7):
             raise ValueError('Color must be a valid hex color code (e.g., #FF0000)')
         return color
 
     @field_validator('name')
+    @classmethod
     def validate_name(cls, name):
         if name is not None:
             if len(name.strip()) == 0:
@@ -22,23 +24,24 @@ class CategoryValidationMixin(BaseModel):
         return name
 
     @field_validator('icon')
+    @classmethod
     def validate_icon(cls, icon):
         if icon is not None and len(icon) > 50:
             raise ValueError('Icon name cannot exceed 50 characters')
         return icon
 
 
-class CategoryBase(CategoryValidationMixin):
+class CategoryBase(BaseModel, CategoryValidationMixin):
     name: str
     icon: Optional[str] = None
     color: Optional[str] = None
 
 
 class CategoryCreate(CategoryBase):
-    user_id: int
+    pass
 
 
-class CategoryUpdate(CategoryValidationMixin):
+class CategoryUpdate(BaseModel, CategoryValidationMixin):
     name: Optional[str] = None
     icon: Optional[str] = None
     color: Optional[str] = None

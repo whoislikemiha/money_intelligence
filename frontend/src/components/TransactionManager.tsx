@@ -1,8 +1,8 @@
 "use client";
 
 import { useState, useEffect } from 'react';
-import { transactionApi } from '@/lib/api';
-import { Transaction, TransactionCreate, TransactionType } from '@/lib/types';
+import { transactionApi, categoryApi } from '@/lib/api';
+import { Transaction, TransactionCreate, TransactionType, Category } from '@/lib/types';
 import { useAuth } from '@/contexts/AuthContext';
 
 interface TransactionManagerProps {
@@ -13,6 +13,7 @@ interface TransactionManagerProps {
 export default function TransactionManager({ accountId, onTransactionChange }: TransactionManagerProps) {
   const { user } = useAuth();
   const [transactions, setTransactions] = useState<Transaction[]>([]);
+  const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(false);
   const [showForm, setShowForm] = useState(false);
   const [formData, setFormData] = useState({
@@ -20,11 +21,12 @@ export default function TransactionManager({ accountId, onTransactionChange }: T
     amount: '',
     description: '',
     date: new Date().toISOString().split('T')[0],
-    category_id: 1
+    category_id: ''
   });
 
   useEffect(() => {
     loadTransactions();
+    loadCategories();
   }, []);
 
   const loadTransactions = async () => {
@@ -39,6 +41,19 @@ export default function TransactionManager({ accountId, onTransactionChange }: T
     }
   };
 
+  const loadCategories = async () => {
+    try {
+      const data = await categoryApi.getAll();
+      setCategories(data);
+      // Set first category as default if available
+      if (data.length > 0 && !formData.category_id) {
+        setFormData(prev => ({ ...prev, category_id: data[0].id.toString() }));
+      }
+    } catch (error) {
+      console.error('Failed to load categories:', error);
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
@@ -47,7 +62,7 @@ export default function TransactionManager({ accountId, onTransactionChange }: T
     try {
       const transactionData: TransactionCreate = {
         account_id: accountId,
-        category_id: formData.category_id,
+        category_id: parseInt(formData.category_id),
         type: formData.type,
         amount: parseFloat(formData.amount),
         description: formData.description,
@@ -63,7 +78,7 @@ export default function TransactionManager({ accountId, onTransactionChange }: T
         amount: '',
         description: '',
         date: new Date().toISOString().split('T')[0],
-        category_id: 1
+        category_id: categories[0]?.id.toString() || ''
       });
       setShowForm(false);
 
@@ -108,8 +123,8 @@ export default function TransactionManager({ accountId, onTransactionChange }: T
       {/* Transaction Form */}
       {showForm && (
         <form onSubmit={handleSubmit} className="mb-6 border border-gray-200 rounded-lg p-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
+          <div className="flex flex-wrap gap-4">
+            <div className="flex-1 min-w-[150px]">
               <label className="block text-sm font-medium text-gray-900 mb-1">
                 Type
               </label>
@@ -124,7 +139,7 @@ export default function TransactionManager({ accountId, onTransactionChange }: T
               </select>
             </div>
 
-            <div>
+            <div className="flex-1 min-w-[150px]">
               <label className="block text-sm font-medium text-gray-700 mb-1">
                 Amount
               </label>
@@ -138,7 +153,7 @@ export default function TransactionManager({ accountId, onTransactionChange }: T
               />
             </div>
 
-            <div>
+            <div className="flex-1 min-w-[150px]">
               <label className="block text-sm font-medium text-gray-700 mb-1">
                 Date
               </label>
@@ -151,20 +166,26 @@ export default function TransactionManager({ accountId, onTransactionChange }: T
               />
             </div>
 
-            <div>
+            <div className="flex-1 min-w-[150px]">
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                Category ID
+                Category
               </label>
-              <input
-                type="number"
+              <select
                 value={formData.category_id}
-                onChange={(e) => setFormData({ ...formData, category_id: parseInt(e.target.value) })}
+                onChange={(e) => setFormData({ ...formData, category_id: e.target.value })}
                 className="w-full border border-gray-300 rounded px-3 py-2 text-sm text-black"
                 required
-              />
+              >
+                <option value="">Select a category</option>
+                {categories.map((category) => (
+                  <option key={category.id} value={category.id}>
+                    {category.icon} {category.name}
+                  </option>
+                ))}
+              </select>
             </div>
 
-            <div className="md:col-span-2">
+            <div className="w-full">
               <label className="block text-sm font-medium text-gray-700 mb-1">
                 Description
               </label>
@@ -201,42 +222,55 @@ export default function TransactionManager({ accountId, onTransactionChange }: T
               <tr>
                 <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Date</th>
                 <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Type</th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Category</th>
                 <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Amount</th>
                 <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Description</th>
                 <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Actions</th>
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
-              {transactions.map((transaction) => (
-                <tr key={transaction.id}>
-                  <td className="px-4 py-3 text-sm text-gray-900">
-                    {new Date(transaction.date).toLocaleDateString()}
-                  </td>
-                  <td className="px-4 py-3 text-sm">
-                    <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
-                      transaction.type === TransactionType.INCOME
-                        ? 'bg-green-100 text-green-800'
-                        : 'bg-red-100 text-red-800'
-                    }`}>
-                      {transaction.type}
-                    </span>
-                  </td>
-                  <td className="px-4 py-3 text-sm text-gray-900">
-                    {Number(transaction.amount).toFixed(2)}
-                  </td>
-                  <td className="px-4 py-3 text-sm text-gray-500">
-                    {transaction.description || '-'}
-                  </td>
-                  <td className="px-4 py-3 text-sm">
-                    <button
-                      onClick={() => handleDelete(transaction.id)}
-                      className="text-red-600 hover:text-red-800"
-                    >
-                      Delete
-                    </button>
-                  </td>
-                </tr>
-              ))}
+              {transactions.map((transaction) => {
+                const category = categories.find(c => c.id === transaction.category_id);
+                return (
+                  <tr key={transaction.id}>
+                    <td className="px-4 py-3 text-sm text-gray-900">
+                      {new Date(transaction.date).toLocaleDateString()}
+                    </td>
+                    <td className="px-4 py-3 text-sm">
+                      <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
+                        transaction.type === TransactionType.INCOME
+                          ? 'bg-green-100 text-green-800'
+                          : 'bg-red-100 text-red-800'
+                      }`}>
+                        {transaction.type}
+                      </span>
+                    </td>
+                    <td className="px-4 py-3 text-sm text-gray-900">
+                      {category ? (
+                        <span>
+                          {category.icon} {category.name}
+                        </span>
+                      ) : (
+                        <span className="text-gray-400">-</span>
+                      )}
+                    </td>
+                    <td className="px-4 py-3 text-sm text-gray-900">
+                      {Number(transaction.amount).toFixed(2)}
+                    </td>
+                    <td className="px-4 py-3 text-sm text-gray-500">
+                      {transaction.description || '-'}
+                    </td>
+                    <td className="px-4 py-3 text-sm">
+                      <button
+                        onClick={() => handleDelete(transaction.id)}
+                        className="text-red-600 hover:text-red-800"
+                      >
+                        Delete
+                      </button>
+                    </td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         </div>

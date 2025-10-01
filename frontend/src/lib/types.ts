@@ -49,3 +49,71 @@ export interface TransactionUpdate {
   date?: string;
   tag_ids?: number[];
 }
+
+// Category types
+export interface Category {
+  id: number;
+  user_id: number;
+  name: string;
+  icon?: string;
+  color?: string;
+  created_at: string;
+  updated_at?: string;
+}
+
+export interface CategoryCreate {
+  name: string;
+  icon?: string;
+  color?: string;
+}
+
+export interface CategoryUpdate {
+  name?: string;
+  icon?: string;
+  color?: string;
+}
+
+// Budget types
+export interface Budget {
+  id: number;
+  user_id: number;
+  category_id: number;
+  amount: number;
+  notes?: string;
+  created_at: string;
+  updated_at?: string;
+  category?: Category;
+}
+
+export interface BudgetCreate {
+  category_id: number;
+  amount: number;
+  notes?: string;
+  user_id: number;
+}
+
+export interface BudgetUpdate {
+  amount?: number;
+  notes?: string;
+}
+
+// Tag types
+export interface Tag {
+  id: number;
+  user_id: number;
+  name: string;
+  color?: string;
+  created_at: string;
+  updated_at?: string;
+}
+
+export interface TagCreate {
+  name: string;
+  color?: string;
+  user_id: number;
+}
+
+export interface TagUpdate {
+  name?: string;
+  color?: string;
+}

@@ -11,7 +11,7 @@ class Transaction(BaseDbModel):
 
     user_id = Column(Integer, ForeignKey('users.id'), nullable=False)
     account_id = Column(Integer, ForeignKey('accounts.id'), nullable=False)
-    category_id = Column(Integer, ForeignKey('categories.id'), nullable=False)
+    category_id = Column(Integer, ForeignKey('categories.id'), nullable=True)
     type = Column(SQLEnum(TransactionType), nullable=False)
     amount = Column(Numeric(12, 2), nullable=False)
     description = Column(String(255))

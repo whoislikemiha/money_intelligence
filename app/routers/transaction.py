@@ -27,14 +27,23 @@ async def get_transactions(
 @router.delete("/{transaction_id}", status_code=204)
 async def delete_transaction(
         transaction_id: int,
-        db: Session = Depends(get_db)
+        db: Session = Depends(get_db),
+        current_user: User = Depends(get_current_active_user)
 ):
-    return TransactionCrud.delete(db, transaction_id)
+    success = TransactionCrud.delete(db, transaction_id, current_user.id)
+    if not success:
+        from fastapi import HTTPException, status
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Transaction not found")
 
 @router.put("/{transaction_id}", response_model=Transaction)
 async def update_transaction(
         transaction_id: int,
         transaction_update: TransactionUpdate,
-        db: Session = Depends(get_db)
+        db: Session = Depends(get_db),
+        current_user: User = Depends(get_current_active_user)
 ):
-    TransactionCrud.update(db, transaction_id, transaction_update)
+    transaction = TransactionCrud.update(db, transaction_id, current_user.id, transaction_update)
+    if not transaction:
+        from fastapi import HTTPException, status
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Transaction not found")
+    return transaction
