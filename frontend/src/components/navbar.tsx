@@ -13,7 +13,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
-import {Wallet, Tags, FolderTree, DollarSign, LogOut, User, BrainCircuit} from 'lucide-react'
+import {Wallet, Settings, DollarSign, LogOut, User, BrainCircuit} from 'lucide-react'
 
 export function Navbar() {
   const router = useRouter()
@@ -57,19 +57,11 @@ export function Navbar() {
               </Button>
               <Button
                 variant="ghost"
-                onClick={() => router.push('/dashboard/categories')}
+                onClick={() => router.push('/dashboard/settings')}
                 className="gap-2"
               >
-                <FolderTree className="h-4 w-4" />
-                Categories
-              </Button>
-              <Button
-                variant="ghost"
-                onClick={() => router.push('/dashboard/tags')}
-                className="gap-2"
-              >
-                <Tags className="h-4 w-4" />
-                Tags
+                <Settings className="h-4 w-4" />
+                Settings
               </Button>
             </div>
           </div>

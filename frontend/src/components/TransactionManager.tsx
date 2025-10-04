@@ -481,7 +481,7 @@ export default function TransactionManager({ accountId, onTransactionChange }: T
           </Button>
         </div>
       ) : (
-        <div className="border rounded-lg">
+        <div className="border rounded-lg ">
           <Table> 
             <TableHeader>
               <TableRow>
@@ -506,8 +506,8 @@ export default function TransactionManager({ accountId, onTransactionChange }: T
                     <TableCell>
                       {category ? (
                         <span
-                          className="inline-flex items-center gap-2 px-2 py-1 rounded-full border-2"
-                          style={{ borderColor: category.color, color: category.color }}
+                          className="inline-flex items-center gap-2 px-2 py-1 rounded-full border-1 text-background"
+                          style={{ borderColor: category.color, backgroundColor: category.color }}
                         >
                           <span>{category.icon}</span>
                           <span>{category.name}</span>

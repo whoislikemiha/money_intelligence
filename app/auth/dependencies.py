@@ -7,7 +7,7 @@ from app.crud.user_crud import UserCrud
 from app.database.database import get_db
 from app.database.models.user import User
 
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/v1/token")
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/token")
 
 
 async def get_current_user(

@@ -4,6 +4,8 @@ import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/contexts/AuthContext";
 import Link from "next/link";
+import { Button } from "@/components/ui/button";
+import { BrainCircuit, TrendingUp, Shield, Sparkles } from "lucide-react";
 
 export default function Home() {
   const { user, loading } = useAuth();
@@ -17,41 +19,71 @@ export default function Home() {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div>Loading...</div>
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <div className="text-muted-foreground">Loading...</div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-purple-950 flex flex-col justify-center py-12 sm:px-6 lg:px-8">
-      <div className="sm:mx-auto sm:w-full sm:max-w-md">
-        <h1 className="mt-6 text-center text-3xl font-extrabold text-green-700">
-          Money Intelligence
-        </h1>
-        <p className="mt-2 text-center text-sm text-gray-600">
-          Your personal finance tracking application
-        </p>
-      </div>
+    <div className="min-h-screen bg-background flex flex-col">
+      {/* Hero Section */}
+      <main className="flex-1 flex flex-col items-center justify-center px-4 py-12">
+        <div className="max-w-3xl mx-auto text-center space-y-8">
+          {/* Logo */}
+          <div className="flex items-center justify-center gap-3">
+            <BrainCircuit className="h-12 w-12 text-primary" />
+            <h1 className="text-4xl font-bold tracking-tight text-foreground">
+              Money Intelligence
+            </h1>
+          </div>
 
-      <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md">
-        <div className="bg-purple-950 py-8 px-4 shadow sm:rounded-lg sm:px-10">
-          <div className="space-y-4">
-            <Link
-              href="/login"
-              className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
-            >
-              Sign In
-            </Link>
-            <Link
-              href="/register"
-              className="w-full flex justify-center py-2 px-4 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
-            >
-              Create Account
-            </Link>
+          {/* Description */}
+          <p className="text-xl text-muted-foreground max-w-2xl">
+            Track your finances with intelligence. Simple, powerful, and designed for clarity.
+          </p>
+
+          {/* Features */}
+          <div className="grid md:grid-cols-3 gap-6 pt-8">
+            <div className="flex flex-col items-center gap-2 p-4">
+              <TrendingUp className="h-8 w-8 text-primary" />
+              <h3 className="font-semibold text-foreground">Track Growth</h3>
+              <p className="text-sm text-muted-foreground">Monitor your financial progress</p>
+            </div>
+            <div className="flex flex-col items-center gap-2 p-4">
+              <Shield className="h-8 w-8 text-primary" />
+              <h3 className="font-semibold text-foreground">Secure</h3>
+              <p className="text-sm text-muted-foreground">Your data is protected</p>
+            </div>
+            <div className="flex flex-col items-center gap-2 p-4">
+              <Sparkles className="h-8 w-8 text-primary" />
+              <h3 className="font-semibold text-foreground">AI-Powered</h3>
+              <p className="text-sm text-muted-foreground">Smart insights and analysis</p>
+            </div>
+          </div>
+
+          {/* CTA Buttons */}
+          <div className="flex flex-col sm:flex-row gap-4 justify-center pt-8">
+            <Button asChild size="lg">
+              <Link href="/register">
+                Get Started
+              </Link>
+            </Button>
+            <Button asChild variant="outline" size="lg">
+              <Link href="/login">
+                Sign In
+              </Link>
+            </Button>
           </div>
         </div>
-      </div>
+      </main>
+
+      {/* Footer */}
+      <footer className="py-6 border-t">
+        <div className="container mx-auto px-4 text-center text-sm text-muted-foreground">
+          Your personal finance tracking application
+        </div>
+      </footer>
     </div>
   );
 }

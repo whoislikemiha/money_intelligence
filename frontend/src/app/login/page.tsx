@@ -4,6 +4,10 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useAuth } from '@/contexts/AuthContext';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { BrainCircuit } from 'lucide-react';
 
 export default function LoginPage() {
   const [email, setEmail] = useState('');
@@ -30,72 +34,78 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50">
-      <div className="max-w-md w-full space-y-8">
-        <div>
-          <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">
-            Sign in to your account
+    <div className="min-h-screen flex items-center justify-center bg-background px-4">
+      <div className="w-full max-w-md space-y-8">
+        {/* Logo and Title */}
+        <div className="flex flex-col items-center gap-2">
+          <BrainCircuit className="h-10 w-10 text-primary" />
+          <h2 className="text-2xl font-bold text-foreground">
+            Sign in to Money Intelligence
           </h2>
+          <p className="text-sm text-muted-foreground">
+            Enter your credentials to access your account
+          </p>
         </div>
-        <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
+
+        {/* Form */}
+        <div className="bg-card border rounded-lg p-8 space-y-6">
           {error && (
-            <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded">
+            <div className="bg-destructive/10 border border-destructive/20 text-destructive px-4 py-3 rounded-md text-sm">
               {error}
             </div>
           )}
 
-          <div className="space-y-4">
-            <div>
-              <label htmlFor="email" className="sr-only">
-                Email address
-              </label>
-              <input
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="email">Email</Label>
+              <Input
                 id="email"
                 name="email"
                 type="email"
                 required
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                className="relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
-                placeholder="Email address"
+                placeholder="you@example.com"
               />
             </div>
-            <div>
-              <label htmlFor="password" className="sr-only">
-                Password
-              </label>
-              <input
+
+            <div className="space-y-2">
+              <Label htmlFor="password">Password</Label>
+              <Input
                 id="password"
                 name="password"
                 type="password"
                 required
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                className="relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
-                placeholder="Password"
+                placeholder="••••••••"
               />
             </div>
-          </div>
 
-          <div>
-            <button
+            <Button
               type="submit"
               disabled={isLoading}
-              className="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50"
+              className="w-full"
             >
               {isLoading ? 'Signing in...' : 'Sign in'}
-            </button>
-          </div>
+            </Button>
+          </form>
 
-          <div className="text-center">
-            <span className="text-sm text-gray-600">
+          <div className="text-center text-sm">
+            <span className="text-muted-foreground">
               Don't have an account?{' '}
-              <Link href="/register" className="font-medium text-indigo-600 hover:text-indigo-500">
+              <Link href="/register" className="text-primary hover:underline font-medium">
                 Sign up
               </Link>
             </span>
           </div>
-        </form>
+
+          <div className="text-center">
+            <Link href="/" className="text-sm text-muted-foreground hover:text-foreground">
+              Back to home
+            </Link>
+          </div>
+        </div>
       </div>
     </div>
   );

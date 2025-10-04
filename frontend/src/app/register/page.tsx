@@ -4,6 +4,17 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useAuth } from '@/contexts/AuthContext';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import { BrainCircuit } from 'lucide-react';
 
 export default function RegisterPage() {
   const [name, setName] = useState('');
@@ -32,104 +43,106 @@ export default function RegisterPage() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50">
-      <div className="max-w-md w-full space-y-8">
-        <div>
-          <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">
+    <div className="min-h-screen flex items-center justify-center bg-background px-4">
+      <div className="w-full max-w-md space-y-8">
+        {/* Logo and Title */}
+        <div className="flex flex-col items-center gap-2">
+          <BrainCircuit className="h-10 w-10 text-primary" />
+          <h2 className="text-2xl font-bold text-foreground">
             Create your account
           </h2>
+          <p className="text-sm text-muted-foreground">
+            Get started with Money Intelligence today
+          </p>
         </div>
-        <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
+
+        {/* Form */}
+        <div className="bg-card border rounded-lg p-8 space-y-6">
           {error && (
-            <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded">
+            <div className="bg-destructive/10 border border-destructive/20 text-destructive px-4 py-3 rounded-md text-sm">
               {error}
             </div>
           )}
 
-          <div className="space-y-4">
-            <div>
-              <label htmlFor="name" className="sr-only">
-                Full name
-              </label>
-              <input
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="name">Full name</Label>
+              <Input
                 id="name"
                 name="name"
                 type="text"
                 required
                 value={name}
                 onChange={(e) => setName(e.target.value)}
-                className="relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
-                placeholder="Full name"
+                placeholder="John Doe"
               />
             </div>
-            <div>
-              <label htmlFor="email" className="sr-only">
-                Email address
-              </label>
-              <input
+
+            <div className="space-y-2">
+              <Label htmlFor="email">Email</Label>
+              <Input
                 id="email"
                 name="email"
                 type="email"
                 required
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                className="relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
-                placeholder="Email address"
+                placeholder="you@example.com"
               />
             </div>
-            <div>
-              <label htmlFor="password" className="sr-only">
-                Password
-              </label>
-              <input
+
+            <div className="space-y-2">
+              <Label htmlFor="password">Password</Label>
+              <Input
                 id="password"
                 name="password"
                 type="password"
                 required
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                className="relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
-                placeholder="Password"
+                placeholder="••••••••"
               />
             </div>
-            <div>
-              <label htmlFor="currency" className="block text-sm font-medium text-gray-700">
-                Currency
-              </label>
-              <select
-                id="currency"
-                name="currency"
-                value={currency}
-                onChange={(e) => setCurrency(e.target.value)}
-                className="mt-1 block w-full px-3 py-2 border border-gray-300 bg-white rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
-              >
-                <option value="EUR">EUR (€)</option>
-                <option value="USD">USD ($)</option>
-                <option value="GBP">GBP (£)</option>
-                <option value="JPY">JPY (¥)</option>
-              </select>
-            </div>
-          </div>
 
-          <div>
-            <button
+            <div className="space-y-2">
+              <Label htmlFor="currency">Currency</Label>
+              <Select value={currency} onValueChange={setCurrency}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select currency" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="EUR">EUR (€)</SelectItem>
+                  <SelectItem value="USD">USD ($)</SelectItem>
+                  <SelectItem value="GBP">GBP (£)</SelectItem>
+                  <SelectItem value="JPY">JPY (¥)</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <Button
               type="submit"
               disabled={isLoading}
-              className="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50"
+              className="w-full"
             >
               {isLoading ? 'Creating account...' : 'Sign up'}
-            </button>
-          </div>
+            </Button>
+          </form>
 
-          <div className="text-center">
-            <span className="text-sm text-gray-600">
+          <div className="text-center text-sm">
+            <span className="text-muted-foreground">
               Already have an account?{' '}
-              <Link href="/login" className="font-medium text-indigo-600 hover:text-indigo-500">
+              <Link href="/login" className="text-primary hover:underline font-medium">
                 Sign in
               </Link>
             </span>
           </div>
-        </form>
+
+          <div className="text-center">
+            <Link href="/" className="text-sm text-muted-foreground hover:text-foreground">
+              Back to home
+            </Link>
+          </div>
+        </div>
       </div>
     </div>
   );
