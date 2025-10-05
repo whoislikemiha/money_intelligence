@@ -8,11 +8,12 @@ from app.database.models.enums import TransactionType
 class Account(BaseDbModel):
     __tablename__ = 'accounts'
 
-    user_id = Column(Integer, ForeignKey('users.id'), nullable=False, unique=True)
+    user_id = Column(Integer, ForeignKey('users.id'), nullable=False)
     name = Column(String(100), default="Main Account")
     initial_balance = Column(Numeric(12, 2), default=0)
+    currency = Column(String(3), default='EUR', nullable=False)
 
-    user = relationship("User", back_populates="account")
+    user = relationship("User", back_populates="accounts")
     transactions = relationship("Transaction", back_populates="account", cascade="all, delete-orphan")
 
     @property

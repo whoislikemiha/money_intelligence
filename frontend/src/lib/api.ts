@@ -66,15 +66,29 @@ export class ApiClient {
 
 export const apiClient = new ApiClient();
 
-import { Account, Transaction, TransactionCreate, TransactionUpdate, Category, CategoryCreate, CategoryUpdate, Budget, BudgetCreate, BudgetUpdate, Tag, TagCreate, TagUpdate } from './types';
+import { Account, AccountCreate, AccountUpdate, MonthlyStats, Transaction, TransactionCreate, TransactionUpdate, Category, CategoryCreate, CategoryUpdate, Budget, BudgetCreate, BudgetUpdate, Tag, TagCreate, TagUpdate, AgentProcessRequest, AgentProcessResponse } from './types';
 
 // Account API functions
 export const accountApi = {
-  getMyAccount: (): Promise<Account> =>
+  getAll: (): Promise<Account[]> =>
     apiClient.get('/account/'),
 
-  updateInitialBalance: (initial_balance: number): Promise<Account> =>
-    apiClient.put('/account/initial-balance', { initial_balance }),
+  getById: (id: number): Promise<Account> =>
+    apiClient.get(`/account/${id}`),
+
+  create: (data: AccountCreate): Promise<Account> =>
+    apiClient.post('/account/', data),
+
+  update: (id: number, data: AccountUpdate): Promise<Account> =>
+    apiClient.put(`/account/${id}`, data),
+
+  delete: (id: number): Promise<void> =>
+    apiClient.delete(`/account/${id}`),
+
+  getMonthlyStats: (accountId?: number): Promise<MonthlyStats> => {
+    const params = accountId ? `?account_id=${accountId}` : '';
+    return apiClient.get(`/account/monthly-stats/${params}`);
+  },
 };
 
 // Transaction API functions
@@ -152,4 +166,10 @@ export const tagApi = {
 
   delete: (id: number): Promise<void> =>
     apiClient.delete(`/tag/${id}`),
+};
+
+// Agent API functions
+export const agentApi = {
+  processText: (data: AgentProcessRequest): Promise<AgentProcessResponse> =>
+    apiClient.post('/agent/process', data),
 };

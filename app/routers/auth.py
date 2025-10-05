@@ -9,7 +9,7 @@ from app.auth.dependencies import get_current_active_user
 from app.config import settings
 from app.crud.user_crud import UserCrud
 from app.database.database import get_db
-from app.schemas.user import Token, User, UserCreate
+from app.schemas.user import Token, User, UserCreate, UserUpdate
 
 router = APIRouter()
 
@@ -50,3 +50,15 @@ async def login_for_access_token(
 @router.get("/me", response_model=User)
 async def read_current_user(current_user: User = Depends(get_current_active_user)):
     return current_user
+
+
+@router.put("/me", response_model=User)
+async def update_current_user(
+    user_update: UserUpdate,
+    current_user: User = Depends(get_current_active_user),
+    db: Session = Depends(get_db)
+):
+    updated_user = UserCrud.update(db, current_user.id, user_update)
+    if not updated_user:
+        raise HTTPException(status_code=404, detail="User not found")
+    return updated_user

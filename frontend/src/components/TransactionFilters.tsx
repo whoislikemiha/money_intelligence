@@ -82,7 +82,7 @@ export default function TransactionFiltersComponent({
   };
 
   return (
-    <div className="border rounded-lg">
+    <div className="border rounded-lg  bg-card">
       <div className="flex items-center justify-between p-4">
         <button
           type="button"

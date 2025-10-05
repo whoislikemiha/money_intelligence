@@ -42,8 +42,7 @@ def upgrade() -> None:
     sa.Column('updated_at', sa.DateTime(timezone=True), nullable=True),
     sa.Column('is_active', sa.Boolean(), nullable=True),
     sa.ForeignKeyConstraint(['user_id'], ['users.id'], ),
-    sa.PrimaryKeyConstraint('id'),
-    sa.UniqueConstraint('user_id')
+    sa.PrimaryKeyConstraint('id')
     )
     op.create_index(op.f('ix_accounts_id'), 'accounts', ['id'], unique=False)
     op.create_table('categories',
@@ -120,8 +119,6 @@ def upgrade() -> None:
     sa.PrimaryKeyConstraint('transaction_id', 'tag_id', 'id')
     )
     op.create_index(op.f('ix_transaction_tags_id'), 'transaction_tags', ['id'], unique=False)
-    op.drop_index(op.f('ix_user_id'), table_name='user')
-    op.drop_table('user')
     # ### end Alembic commands ###
 
 

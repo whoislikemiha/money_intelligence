@@ -5,16 +5,24 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useRouter } from 'next/navigation';
 import { categoryApi, tagApi, accountApi, Account } from '@/lib/api';
 import { Category, CategoryCreate, Tag, TagCreate } from '@/lib/types';
+import { AuthAPI, UserUpdate } from '@/lib/auth';
 import { Navbar } from '@/components/navbar';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { Pencil, Trash2, Plus, X } from 'lucide-react';
 
 export default function SettingsPage() {
-  const { user, loading } = useAuth();
+  const { user, loading, refreshUser } = useAuth();
   const router = useRouter();
 
   // Categories state
@@ -37,10 +45,14 @@ export default function SettingsPage() {
   const [editingTag, setEditingTag] = useState<Tag | null>(null);
 
   // Account state
-  const [account, setAccount] = useState<Account | null>(null);
+  const [accounts, setAccounts] = useState<Account[]>([]);
   const [accountLoading, setAccountLoading] = useState(false);
-  const [isEditingBalance, setIsEditingBalance] = useState(false);
-  const [balanceValue, setBalanceValue] = useState('');
+  const [editingAccount, setEditingAccount] = useState<Account | null>(null);
+  const [accountFormData, setAccountFormData] = useState({
+    name: '',
+    initial_balance: '0',
+    currency: 'EUR'
+  });
 
   useEffect(() => {
     if (!loading && !user) {
@@ -52,7 +64,7 @@ export default function SettingsPage() {
     if (user && !loading) {
       loadCategories();
       loadTags();
-      loadAccount();
+      loadAccounts();
     }
   }, [user, loading]);
 
@@ -184,43 +196,73 @@ export default function SettingsPage() {
   };
 
   // Account functions
-  const loadAccount = async () => {
+  const loadAccounts = async () => {
     try {
       setAccountLoading(true);
-      const accountData = await accountApi.getMyAccount();
-      setAccount(accountData);
+      const accountsData = await accountApi.getAll();
+      setAccounts(accountsData);
     } catch (error) {
-      console.error('Failed to load account:', error);
+      console.error('Failed to load accounts:', error);
     } finally {
       setAccountLoading(false);
     }
   };
 
-  const handleEditBalance = () => {
-    setBalanceValue(account?.initial_balance.toString() || '0');
-    setIsEditingBalance(true);
-  };
-
-  const handleSaveBalance = async () => {
+  const handleAccountSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
     try {
-      const newValue = parseFloat(balanceValue);
-      if (isNaN(newValue)) {
-        alert('Please enter a valid number');
+      const balance = parseFloat(accountFormData.initial_balance);
+      if (isNaN(balance)) {
+        alert('Please enter a valid balance');
         return;
       }
 
-      const updatedAccount = await accountApi.updateInitialBalance(newValue);
-      setAccount(updatedAccount);
-      setIsEditingBalance(false);
+      if (editingAccount) {
+        await accountApi.update(editingAccount.id, {
+          name: accountFormData.name,
+          initial_balance: balance,
+          currency: accountFormData.currency
+        });
+      } else {
+        await accountApi.create({
+          name: accountFormData.name,
+          initial_balance: balance,
+          currency: accountFormData.currency
+        });
+      }
+
+      setAccountFormData({ name: '', initial_balance: '0', currency: 'EUR' });
+      setEditingAccount(null);
+      await loadAccounts();
     } catch (error) {
-      console.error('Failed to update initial balance:', error);
-      alert('Failed to update initial balance');
+      console.error('Failed to save account:', error);
+      alert('Failed to save account');
     }
   };
 
-  const handleCancelBalance = () => {
-    setIsEditingBalance(false);
-    setBalanceValue('');
+  const handleEditAccount = (account: Account) => {
+    setEditingAccount(account);
+    setAccountFormData({
+      name: account.name,
+      initial_balance: account.initial_balance.toString(),
+      currency: account.currency
+    });
+  };
+
+  const handleDeleteAccount = async (id: number) => {
+    if (!confirm('Are you sure you want to delete this account? All transactions will be deleted.')) return;
+    try {
+      await accountApi.delete(id);
+      await loadAccounts();
+    } catch (error) {
+      console.error('Failed to delete account:', error);
+      alert('Failed to delete account');
+    }
+  };
+
+  const handleCancelAccount = () => {
+    setEditingAccount(null);
+    setAccountFormData({ name: '', initial_balance: '0', currency: 'EUR' });
   };
 
   if (loading) {
@@ -449,63 +491,103 @@ export default function SettingsPage() {
             <div>
               <h2 className="text-xl font-semibold mb-4">Account Settings</h2>
 
-              {accountLoading ? (
-                <div className="text-center py-8">Loading account...</div>
-              ) : account ? (
-                <div className="space-y-6">
-                  <div className="p-6 border rounded-lg">
-                    <h3 className="font-medium mb-4">Initial Balance</h3>
-                    {isEditingBalance ? (
-                      <div className="flex gap-4 items-end">
-                        <div className="flex-1 max-w-xs">
-                          <Label htmlFor="initial-balance">Amount</Label>
-                          <Input
-                            id="initial-balance"
-                            type="number"
-                            step="0.01"
-                            value={balanceValue}
-                            onChange={(e) => setBalanceValue(e.target.value)}
-                            placeholder="0.00"
-                          />
-                        </div>
-                        <Button onClick={handleSaveBalance}>Save</Button>
-                        <Button variant="outline" onClick={handleCancelBalance}>
-                          Cancel
-                        </Button>
+              <div className="space-y-6">
+                {/* Accounts Management */}
+                <div className="p-6 border rounded-lg">
+                  <h3 className="font-medium mb-4">Accounts</h3>
+
+                  {/* Account Form */}
+                  <form onSubmit={handleAccountSubmit} className="space-y-4 mb-6 p-4 bg-accent/50 rounded-lg">
+                    <div className="flex gap-4 items-end">
+                      <div className="flex-1">
+                        <Label htmlFor="account-name">Account Name *</Label>
+                        <Input
+                          id="account-name"
+                          type="text"
+                          value={accountFormData.name}
+                          onChange={(e) => setAccountFormData({ ...accountFormData, name: e.target.value })}
+                          required
+                          placeholder="e.g., Main Account, Savings"
+                        />
                       </div>
-                    ) : (
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <div className="text-3xl font-bold">${account.initial_balance.toFixed(2)}</div>
-                          <div className="text-sm text-muted-foreground mt-1">
-                            Current initial balance
+                      <div className="flex-1">
+                        <Label htmlFor="initial-balance">Initial Balance *</Label>
+                        <Input
+                          id="initial-balance"
+                          type="number"
+                          step="0.01"
+                          value={accountFormData.initial_balance}
+                          onChange={(e) => setAccountFormData({ ...accountFormData, initial_balance: e.target.value })}
+                          required
+                          placeholder="0.00"
+                        />
+                      </div>
+                      <div className="w-40">
+                        <Label htmlFor="account-currency">Currency *</Label>
+                        <Select value={accountFormData.currency} onValueChange={(value) => setAccountFormData({ ...accountFormData, currency: value })}>
+                          <SelectTrigger id="account-currency">
+                            <SelectValue placeholder="Select currency" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="EUR">EUR (€)</SelectItem>
+                            <SelectItem value="USD">USD ($)</SelectItem>
+                            <SelectItem value="GBP">GBP (£)</SelectItem>
+                            <SelectItem value="JPY">JPY (¥)</SelectItem>
+                            <SelectItem value="RSD">RSD (дин)</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <Button type="submit">
+                        {editingAccount ? 'Update' : 'Add'}
+                      </Button>
+                      {editingAccount && (
+                        <Button type="button" variant="outline" onClick={handleCancelAccount}>
+                          <X className="h-4 w-4" />
+                        </Button>
+                      )}
+                    </div>
+                  </form>
+
+                  {/* Accounts List */}
+                  {accountLoading ? (
+                    <div className="text-center py-8">Loading accounts...</div>
+                  ) : accounts.length === 0 ? (
+                    <div className="text-center text-muted-foreground py-8">No accounts yet. Create one above.</div>
+                  ) : (
+                    <div className="space-y-2">
+                      {accounts.map((account) => (
+                        <div
+                          key={account.id}
+                          className="flex items-center justify-between p-4 border rounded-lg hover:bg-accent/50 transition-colors"
+                        >
+                          <div>
+                            <div className="font-medium text-lg">{account.name}</div>
+                            <div className="text-sm text-muted-foreground mt-1">
+                              Initial: {Number(account.initial_balance).toFixed(2)} {account.currency} • Current: {Number(account.current_balance).toFixed(2)} {account.currency}
+                            </div>
+                          </div>
+                          <div className="flex gap-2">
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => handleEditAccount(account)}
+                            >
+                              <Pencil className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => handleDeleteAccount(account.id)}
+                            >
+                              <Trash2 className="h-4 w-4 text-destructive" />
+                            </Button>
                           </div>
                         </div>
-                        <Button onClick={handleEditBalance}>
-                          <Pencil className="h-4 w-4 mr-2" />
-                          Edit
-                        </Button>
-                      </div>
-                    )}
-                  </div>
-
-                  <div className="p-6 border rounded-lg">
-                    <h3 className="font-medium mb-2">Account Information</h3>
-                    <div className="space-y-2 text-sm">
-                      <div className="flex justify-between">
-                        <span className="text-muted-foreground">Account Name:</span>
-                        <span className="font-medium">{account.name}</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-muted-foreground">Currency:</span>
-                        <span className="font-medium">{account.currency}</span>
-                      </div>
+                      ))}
                     </div>
-                  </div>
+                  )}
                 </div>
-              ) : (
-                <div className="text-center py-8 text-muted-foreground">No account found</div>
-              )}
+              </div>
             </div>
           </TabsContent>
         </Tabs>

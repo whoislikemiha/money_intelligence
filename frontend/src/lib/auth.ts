@@ -10,6 +10,7 @@ export interface RegisterRequest {
   email: string;
   password: string;
   currency?: string;
+  initial_balance?: number;
 }
 
 export interface TokenResponse {
@@ -21,10 +22,13 @@ export interface User {
   id: number;
   name: string;
   email: string;
-  currency: string;
   created_at: string;
   updated_at?: string;
   is_active: boolean;
+}
+
+export interface UserUpdate {
+  name?: string;
 }
 
 export class AuthAPI {
@@ -63,5 +67,9 @@ export class AuthAPI {
     }
 
     return response.json();
+  }
+
+  static async updateUser(userData: UserUpdate): Promise<User> {
+    return apiClient.put<User>('/me', userData);
   }
 }

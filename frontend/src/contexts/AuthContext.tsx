@@ -7,8 +7,9 @@ interface AuthContextType {
   user: User | null;
   token: string | null;
   login: (email: string, password: string) => Promise<void>;
-  register: (name: string, email: string, password: string, currency?: string) => Promise<void>;
+  register: (name: string, email: string, password: string, currency?: string, initialBalance?: number) => Promise<void>;
   logout: () => void;
+  refreshUser: () => Promise<void>;
   loading: boolean;
 }
 
@@ -55,13 +56,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
-  const register = async (name: string, email: string, password: string, currency = 'EUR') => {
+  const register = async (name: string, email: string, password: string, currency = 'EUR', initialBalance = 0) => {
     try {
       const user = await AuthAPI.register({
         name,
         email,
         password,
         currency,
+        initial_balance: initialBalance,
       });
 
       await login(email, password);
@@ -76,12 +78,24 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setUser(null);
   };
 
+  const refreshUser = async () => {
+    if (token) {
+      try {
+        const userData = await AuthAPI.getCurrentUser(token);
+        setUser(userData);
+      } catch (error) {
+        console.error('Failed to refresh user:', error);
+      }
+    }
+  };
+
   const value = {
     user,
     token,
     login,
     register,
     logout,
+    refreshUser,
     loading,
   };
 

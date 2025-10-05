@@ -5,8 +5,27 @@ export interface Account {
   name: string;
   current_balance: number;
   initial_balance: number;
+  currency: string;
   created_at: string;
   updated_at: string | null;
+}
+
+export interface AccountCreate {
+  name: string;
+  initial_balance: number;
+  currency: string;
+}
+
+export interface AccountUpdate {
+  name?: string;
+  initial_balance?: number;
+  currency?: string;
+}
+
+export interface MonthlyStats {
+  current_balance: number;
+  monthly_income: number;
+  monthly_expenses: number;
 }
 
 // Transaction types
@@ -116,4 +135,23 @@ export interface TagCreate {
 export interface TagUpdate {
   name?: string;
   color?: string;
+}
+
+// Agent types
+export interface TransactionPreview {
+  amount: number;
+  description: string;
+  category_id: number;
+  type: TransactionType;
+  date: string;
+  tags: number[];
+}
+
+export interface AgentProcessRequest {
+  text: string;
+  account_id: number;
+}
+
+export interface AgentProcessResponse {
+  transactions: TransactionPreview[];
 }

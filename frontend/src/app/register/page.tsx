@@ -21,6 +21,7 @@ export default function RegisterPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [currency, setCurrency] = useState('EUR');
+  const [initialBalance, setInitialBalance] = useState('0');
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
 
@@ -33,7 +34,13 @@ export default function RegisterPage() {
     setIsLoading(true);
 
     try {
-      await register(name, email, password, currency);
+      const balance = parseFloat(initialBalance);
+      if (isNaN(balance)) {
+        setError('Please enter a valid initial balance');
+        setIsLoading(false);
+        return;
+      }
+      await register(name, email, password, currency, balance);
       router.push('/dashboard');
     } catch (err) {
       setError('Registration failed. Email may already be registered.');
@@ -115,8 +122,26 @@ export default function RegisterPage() {
                   <SelectItem value="USD">USD ($)</SelectItem>
                   <SelectItem value="GBP">GBP (£)</SelectItem>
                   <SelectItem value="JPY">JPY (¥)</SelectItem>
+                  <SelectItem value="RSD">RSD (дин)</SelectItem>
                 </SelectContent>
               </Select>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="initialBalance">Initial Balance</Label>
+              <Input
+                id="initialBalance"
+                name="initialBalance"
+                type="number"
+                step="0.01"
+                required
+                value={initialBalance}
+                onChange={(e) => setInitialBalance(e.target.value)}
+                placeholder="0.00"
+              />
+              <p className="text-xs text-muted-foreground">
+                Enter your starting balance for your main account
+              </p>
             </div>
 
             <Button

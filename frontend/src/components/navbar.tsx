@@ -13,9 +13,23 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
 import {Wallet, Settings, DollarSign, LogOut, User, BrainCircuit} from 'lucide-react'
+import { Account } from '@/lib/types'
 
-export function Navbar() {
+interface NavbarProps {
+  accounts?: Account[]
+  selectedAccount?: Account | null
+  onAccountChange?: (accountId: number) => void
+}
+
+export function Navbar({ accounts, selectedAccount, onAccountChange }: NavbarProps) {
   const router = useRouter()
   const { user, logout } = useAuth()
 
@@ -45,7 +59,7 @@ export function Navbar() {
                 className="gap-2"
               >
                 <Wallet className="h-4 w-4" />
-                Accounts
+                Dashboard
               </Button>
               <Button
                 variant="ghost"
@@ -66,8 +80,29 @@ export function Navbar() {
             </div>
           </div>
 
-          {/* Right side - User menu, theme toggle, logout */}
+          {/* Right side - Account selector, theme toggle, user menu */}
           <div className="flex items-center gap-4">
+            {/* Account Selector */}
+            {accounts && accounts.length > 0 && selectedAccount && (
+              <Select
+                value={selectedAccount.id.toString()}
+                onValueChange={(value) => onAccountChange?.(Number(value))}
+              >
+                <SelectTrigger className="w-[200px]">
+                  <SelectValue>
+                    {selectedAccount.name} ({Number(selectedAccount.current_balance).toFixed(2)} {selectedAccount.currency})
+                  </SelectValue>
+                </SelectTrigger>
+                <SelectContent>
+                  {accounts.map(acc => (
+                    <SelectItem key={acc.id} value={acc.id.toString()}>
+                      {acc.name} ({Number(acc.current_balance).toFixed(2)} {acc.currency})
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            )}
+
             <ThemeToggle />
 
             <DropdownMenu>

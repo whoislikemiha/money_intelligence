@@ -131,16 +131,19 @@ export default function BudgetManager() {
   const handleDialogClose = (open: boolean) => {
     setDialogOpen(open);
     if (!open) {
-      setEditingBudget(null);
-      // Reset to first available category without a budget
-      const availableCategory = categories.find(
-        category => !budgets.some(budget => budget.category_id === category.id)
-      );
-      setFormData({
-        category_id: availableCategory?.id.toString() || '',
-        amount: '',
-        notes: ''
-      });
+      // Delay reset until after dialog animation completes
+      setTimeout(() => {
+        setEditingBudget(null);
+        // Reset to first available category without a budget
+        const availableCategory = categories.find(
+          category => !budgets.some(budget => budget.category_id === category.id)
+        );
+        setFormData({
+          category_id: availableCategory?.id.toString() || '',
+          amount: '',
+          notes: ''
+        });
+      }, 200);
     }
   };
 
@@ -269,23 +272,19 @@ export default function BudgetManager() {
               const isWarning = budget.percentage >= 80 && budget.percentage < 100;
 
               return (
-                <div key={budget.id} className="border rounded-lg p-4 space-y-3">
+                <div
+                  key={budget.id}
+                  className="border rounded-lg p-4 space-y-3 border-l-4"
+                  style={{ borderLeftColor: category?.color }}
+                >
                   <div className="flex items-start justify-between">
-                    <div className="flex items-center gap-3">
-                      {category && (
-                        <span
-                          className="w-2 h-2 rounded-full"
-                          style={{ backgroundColor: category.color }}
-                        />
+                    <div>
+                      <h3 className="font-semibold">
+                        {category?.icon} {category?.name || 'Unknown Category'}
+                      </h3>
+                      {budget.notes && (
+                        <p className="text-sm text-muted-foreground">{budget.notes}</p>
                       )}
-                      <div>
-                        <h3 className="font-semibold">
-                          {category?.icon} {category?.name || 'Unknown Category'}
-                        </h3>
-                        {budget.notes && (
-                          <p className="text-sm text-muted-foreground">{budget.notes}</p>
-                        )}
-                      </div>
                     </div>
                     <div className="flex items-center gap-2">
                       <Button
@@ -333,9 +332,9 @@ export default function BudgetManager() {
                       }`}
                     />
 
-                    <div className="flex items-center justify-between text-sm">
+                    <div className="flex items-center justify-end text-sm">
                       <span className={`${
-                        budget.remaining >= 0 ? 'text-muted-foreground' : 'text-red-600 dark:text-red-400'
+                        budget.remaining >= 0 ? 'text-foreground' : 'text-red-600 dark:text-red-400'
                       }`}>
                         {budget.remaining >= 0 ? 'Remaining' : 'Over budget'}: {Math.abs(budget.remaining).toFixed(2)} {user?.currency}
                       </span>

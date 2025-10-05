@@ -7,11 +7,16 @@ from pydantic import BaseModel, ConfigDict, EmailStr
 class UserBase(BaseModel):
     name: str
     email: EmailStr
-    currency: str = "EUR"
 
 
 class UserCreate(UserBase):
     password: str
+    initial_balance: float = 0
+    currency: str = 'EUR'
+
+
+class UserUpdate(BaseModel):
+    name: Optional[str] = None
 
 
 class UserInDB(UserBase):

@@ -34,6 +34,7 @@ import {
 } from '@/components/ui/select';
 import { Plus, Trash2, TrendingUp, TrendingDown, Pencil } from 'lucide-react';
 import TransactionFiltersComponent, { TransactionFilters } from './TransactionFilters';
+import AiTransactionInput from './AiTransactionInput';
 
 interface TransactionManagerProps {
   accountId: number;
@@ -205,6 +206,7 @@ export default function TransactionManager({ accountId, onTransactionChange }: T
 
   const handleCreateTag = async (e: React.FormEvent) => {
     e.preventDefault();
+    e.stopPropagation();
     if (!user || !newTagData.name.trim()) return;
 
     try {
@@ -227,42 +229,62 @@ export default function TransactionManager({ accountId, onTransactionChange }: T
     }
   };
 
-  const filteredTransactions = transactions.filter((transaction) => {
-    // Date filter
-    if (filters.startDate && transaction.date < filters.startDate) return false;
-    if (filters.endDate && transaction.date > filters.endDate) return false;
+  const filteredTransactions = transactions
+    .filter((transaction) => {
+      // Date filter
+      if (filters.startDate && transaction.date < filters.startDate) return false;
+      if (filters.endDate && transaction.date > filters.endDate) return false;
 
-    // Category filter - transaction must have one of the selected categories
-    if (filters.categoryIds.length > 0) {
-      if (!filters.categoryIds.includes(transaction.category_id)) return false;
-    }
+      // Category filter - transaction must have one of the selected categories
+      if (filters.categoryIds.length > 0) {
+        if (!filters.categoryIds.includes(transaction.category_id)) return false;
+      }
 
-    // Tag filter - transaction must have at least one of the selected tags
-    if (filters.tagIds.length > 0) {
-      const transactionTagIds = transaction.tags?.map((tag: any) => tag.id) || [];
-      const hasMatchingTag = filters.tagIds.some(tagId => transactionTagIds.includes(tagId));
-      if (!hasMatchingTag) return false;
-    }
+      // Tag filter - transaction must have at least one of the selected tags
+      if (filters.tagIds.length > 0) {
+        const transactionTagIds = transaction.tags?.map((tag: any) => tag.id) || [];
+        const hasMatchingTag = filters.tagIds.some(tagId => transactionTagIds.includes(tagId));
+        if (!hasMatchingTag) return false;
+      }
 
-    return true;
-  });
+      return true;
+    })
+    .sort((a, b) => {
+      // Sort by date first (most recent first)
+      const dateCompare = new Date(b.date).getTime() - new Date(a.date).getTime();
+      if (dateCompare !== 0) return dateCompare;
+      // If same date, sort by creation time (most recently created first)
+      return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+    });
 
   return (
-    <div className="space-y-4">
-      <div className="flex items-center justify-between">
+    <div className="flex flex-col h-full space-y-4">
+      <div className="flex items-center justify-between flex-shrink-0">
         <div>
           <h2 className="text-2xl font-bold tracking-tight">Transactions</h2>
           <p className="text-muted-foreground">
             Manage your income and expenses
           </p>
         </div>
-        <Dialog open={dialogOpen} onOpenChange={handleDialogClose}>
-          <DialogTrigger asChild>
-            <Button>
-              <Plus className="mr-2 h-4 w-4" />
-              Add Transaction
-            </Button>
-          </DialogTrigger>
+        <div className="flex gap-2">
+          <AiTransactionInput
+            accountId={accountId}
+            categories={categories}
+            tags={tags}
+            onTransactionsCreated={async () => {
+              await loadTransactions();
+              if (onTransactionChange) {
+                onTransactionChange();
+              }
+            }}
+          />
+          <Dialog open={dialogOpen} onOpenChange={handleDialogClose}>
+            <DialogTrigger asChild>
+              <Button>
+                <Plus className="mr-2 h-4 w-4" />
+                Add Transaction
+              </Button>
+            </DialogTrigger>
           <DialogContent className="sm:max-w-[500px]">
             <form onSubmit={handleSubmit}>
               <DialogHeader>
@@ -443,132 +465,137 @@ export default function TransactionManager({ accountId, onTransactionChange }: T
             </form>
           </DialogContent>
         </Dialog>
+        </div>
       </div>
 
-      <TransactionFiltersComponent
-        filters={filters}
-        categories={categories}
-        tags={tags}
-        onFiltersChange={setFilters}
-      />
+      <div className="flex-shrink-0 ">
+        <TransactionFiltersComponent
+          filters={filters}
+          categories={categories}
+          tags={tags}
+          onFiltersChange={setFilters}
+        />
+      </div>
 
-      {loading ? (
-        <div className="flex items-center justify-center py-8">
-          <div className="text-muted-foreground">Loading transactions...</div>
-        </div>
-      ) : filteredTransactions.length === 0 ? (
-        <div className="flex flex-col items-center justify-center py-12 border-2 border-dashed rounded-lg">
-          <p className="text-muted-foreground mb-4">
-            {transactions.length === 0 ? 'No transactions yet' : 'No transactions match your filters'}
-          </p>
-          {transactions.length === 0 ? (
+      <div className="flex-1 min-h-0 overflow-auto">
+        {loading ? (
+          <div className="flex items-center justify-center py-8">
+            <div className="text-muted-foreground">Loading transactions...</div>
+          </div>
+        ) : filteredTransactions.length === 0 ? (
+          <div className="flex flex-col items-center justify-center py-12 border-2 border-dashed rounded-lg">
+            <p className="text-muted-foreground mb-4">
+              {transactions.length === 0 ? 'No transactions yet' : 'No transactions match your filters'}
+            </p>
+            {transactions.length === 0 ? (
+              <Button variant="outline" onClick={() => setDialogOpen(true)}>
+                <Plus className="mr-2 h-4 w-4" />
+                Add your first transaction
+              </Button>
+            ) : (
+              <Button variant="outline" onClick={() => setFilters({ startDate: '', endDate: '', categoryIds: [], tagIds: [] })}>
+                Clear filters
+              </Button>
+            )}
+          </div>
+        ) : transactions.length === 0 ? (
+          <div className="flex flex-col items-center justify-center py-12 border-2 border-dashed rounded-lg">
+            <p className="text-muted-foreground mb-4">No transactions yet</p>
             <Button variant="outline" onClick={() => setDialogOpen(true)}>
               <Plus className="mr-2 h-4 w-4" />
               Add your first transaction
             </Button>
-          ) : (
-            <Button variant="outline" onClick={() => setFilters({ startDate: '', endDate: '', categoryIds: [], tagIds: [] })}>
-              Clear filters
-            </Button>
-          )}
-        </div>
-      ) : transactions.length === 0 ? (
-        <div className="flex flex-col items-center justify-center py-12 border-2 border-dashed rounded-lg">
-          <p className="text-muted-foreground mb-4">No transactions yet</p>
-          <Button variant="outline" onClick={() => setDialogOpen(true)}>
-            <Plus className="mr-2 h-4 w-4" />
-            Add your first transaction
-          </Button>
-        </div>
-      ) : (
-        <div className="border rounded-lg ">
-          <Table> 
-            <TableHeader>
-              <TableRow>
-                <TableHead>Date</TableHead>
-                <TableHead>Category</TableHead>
-                <TableHead>Tags</TableHead>
-                <TableHead>Description</TableHead>
-                <TableHead className="text-right">Amount</TableHead>
-                <TableHead className="text-right">Actions</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {filteredTransactions.map((transaction) => {
-                const category = categories.find(c => c.id === transaction.category_id);
-                const isIncome = transaction.type === TransactionType.INCOME;
+          </div>
+        ) : (
+          <div className="border rounded-lg">
+            <Table className="bg-card">
+              <TableHeader className="sticky top-0 z-10">
+                <TableRow>
+                  <TableHead>Date</TableHead>
+                  <TableHead>Category</TableHead>
+                  <TableHead>Tags</TableHead>
+                  <TableHead>Description</TableHead>
+                  <TableHead className="text-right">Amount</TableHead>
+                  <TableHead className="text-right">Actions</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {filteredTransactions.map((transaction) => {
+                  const category = categories.find(c => c.id === transaction.category_id);
+                  const isIncome = transaction.type === TransactionType.INCOME;
 
-                return (
-                  <TableRow key={transaction.id}>
-                    <TableCell className="font-medium">
-                      {new Date(transaction.date).toLocaleDateString()}
-                    </TableCell>
-                    <TableCell>
-                      {category ? (
-                        <span
-                          className="inline-flex items-center gap-2 px-2 py-1 rounded-full border-1 text-background"
-                          style={{ borderColor: category.color, backgroundColor: category.color }}
-                        >
-                          <span>{category.icon}</span>
-                          <span>{category.name}</span>
-                        </span>
-                      ) : (
-                        <span className="text-muted-foreground">-</span>
-                      )}
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex flex-wrap gap-1">
-                        {transaction.tags && transaction.tags.length > 0 ? (
-                          transaction.tags.map((tag: any) => (
-                            <Badge
-                              key={tag.id}
-                              variant="secondary"
-                              className="text-xs"
-                              style={{ backgroundColor: tag.color || undefined }}
-                            >
-                              {tag.name}
-                            </Badge>
-                          ))
+                  return (
+                    <TableRow key={transaction.id}>
+                      <TableCell className="font-medium">
+                        {new Date(transaction.date).toLocaleDateString()}
+                      </TableCell>
+                      <TableCell>
+                        {category ? (
+                          <span
+                            className="inline-flex items-center gap-2 px-2 py-1 rounded-full border-1 text-background"
+                            style={{ borderColor: category.color, backgroundColor: category.color }}
+                          >
+                            <span>{category.icon}</span>
+                            <span>{category.name}</span>
+                          </span>
                         ) : (
                           <span className="text-muted-foreground">-</span>
                         )}
-                      </div>
-                    </TableCell>
-                    <TableCell className="text-muted-foreground">
-                      {transaction.description || '-'}
-                    </TableCell>
-                    <TableCell className={`text-right font-semibold ${
-                      isIncome ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'
-                    }`}>
-                      {isIncome ? '+' : '-'}{Number(transaction.amount).toFixed(2)} {user?.currency}
-                    </TableCell>
-                    <TableCell className="text-right">
-                      <div className="flex items-center justify-end gap-2">
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => handleEdit(transaction)}
-                          className="h-8 w-8"
-                        >
-                          <Pencil className="h-4 w-4" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => handleDelete(transaction.id)}
-                          className="h-8 w-8"
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                );
-              })}
-            </TableBody>
-          </Table>
-        </div>
-      )}
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex flex-wrap gap-1">
+                          {transaction.tags && transaction.tags.length > 0 ? (
+                            transaction.tags.map((tag: any) => (
+                              <Badge
+                                key={tag.id}
+                                variant="secondary"
+                                className="text-xs"
+                                style={{ backgroundColor: tag.color || undefined }}
+                              >
+                                {tag.name}
+                              </Badge>
+                            ))
+                          ) : (
+                            <span className="text-muted-foreground">-</span>
+                          )}
+                        </div>
+                      </TableCell>
+                      <TableCell className="text-muted-foreground">
+                        {transaction.description || '-'}
+                      </TableCell>
+                      <TableCell className={`text-right font-semibold ${
+                        isIncome ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'
+                      }`}>
+                        {isIncome ? '+' : '-'}{Number(transaction.amount).toFixed(2)} {user?.currency}
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <div className="flex items-center justify-end gap-2">
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => handleEdit(transaction)}
+                            className="h-8 w-8"
+                          >
+                            <Pencil className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => handleDelete(transaction.id)}
+                            className="h-8 w-8"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  );
+                })}
+              </TableBody>
+            </Table>
+          </div>
+        )}
+      </div>
     </div>
   );
 }
