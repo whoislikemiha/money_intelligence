@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { agentApi, transactionApi } from '@/lib/api';
 import { TransactionPreview, Category, Tag, TransactionType } from '@/lib/types';
 import { useAuth } from '@/contexts/AuthContext';
@@ -46,26 +46,55 @@ export default function AiTransactionInput({
   const [loading, setLoading] = useState(false);
   const [creating, setCreating] = useState(false);
   const [selectedPreviews, setSelectedPreviews] = useState<Set<number>>(new Set());
+  const [streamCleanup, setStreamCleanup] = useState<(() => void) | null>(null);
 
-  const handleProcess = async () => {
+  // Cleanup stream when component unmounts
+  useEffect(() => {
+    return () => {
+      if (streamCleanup) {
+        streamCleanup();
+      }
+    };
+  }, [streamCleanup]);
+
+  const handleProcess = () => {
     if (!text.trim()) return;
 
-    try {
-      setLoading(true);
-      const response = await agentApi.processText({
+    setLoading(true);
+    setPreviews([]); // Clear previous previews
+    setSelectedPreviews(new Set());
+
+    // Track selected indices as transactions arrive
+    let currentIndex = 0;
+    const newSelectedPreviews = new Set<number>();
+
+    const cleanup = agentApi.processTextStream(
+      {
         text: text.trim(),
         account_id: accountId,
-      });
+      },
+      // onTransaction: Add each transaction as it arrives
+      (transaction) => {
+        setPreviews((prev) => [...prev, transaction]);
+        newSelectedPreviews.add(currentIndex);
+        setSelectedPreviews(new Set(newSelectedPreviews));
+        currentIndex++;
+      },
+      // onError
+      (error) => {
+        console.error('Stream error:', error);
+        alert('Failed to process text. Please try again.');
+        setLoading(false);
+        setStreamCleanup(null);
+      },
+      // onComplete
+      () => {
+        setLoading(false);
+        setStreamCleanup(null);
+      }
+    );
 
-      setPreviews(response.transactions);
-      // Select all previews by default
-      setSelectedPreviews(new Set(response.transactions.map((_, idx) => idx)));
-    } catch (error) {
-      console.error('Failed to process text:', error);
-      alert('Failed to process text. Please try again.');
-    } finally {
-      setLoading(false);
-    }
+    setStreamCleanup(() => cleanup);
   };
 
   const handleCreateTransactions = async () => {
@@ -130,7 +159,7 @@ export default function AiTransactionInput({
         AI Input
       </Button>
 
-      <DialogContent className="sm:max-w-[700px]">
+      <DialogContent className="min-w-[800px]">
         <DialogHeader>
           <DialogTitle>AI Transaction Input</DialogTitle>
           <DialogDescription>
@@ -177,9 +206,17 @@ export default function AiTransactionInput({
           {previews.length > 0 && (
             <div className="space-y-4">
               <div className="flex items-center justify-between">
-                <h3 className="text-sm font-medium">
-                  Preview ({selectedPreviews.size} of {previews.length} selected)
-                </h3>
+                <div className="flex items-center gap-2">
+                  <h3 className="text-sm font-medium">
+                    Preview ({selectedPreviews.size} of {previews.length} selected)
+                  </h3>
+                  {loading && (
+                    <span className="text-xs text-muted-foreground flex items-center gap-1">
+                      <Loader2 className="h-3 w-3 animate-spin" />
+                      streaming...
+                    </span>
+                  )}
+                </div>
                 <Button
                   variant="ghost"
                   size="sm"
@@ -188,14 +225,15 @@ export default function AiTransactionInput({
                     setPreviews([]);
                     setSelectedPreviews(new Set());
                   }}
+                  disabled={loading}
                 >
                   Clear
                 </Button>
               </div>
 
-              <div className="border rounded-lg">
+              <div className="border rounded-lg max-h-[500px] overflow-auto">
                 <Table>
-                  <TableHeader>
+                  <TableHeader className="sticky top-0 bg-background z-10">
                     <TableRow>
                       <TableHead className="w-12"></TableHead>
                       <TableHead>Date</TableHead>
@@ -281,6 +319,17 @@ export default function AiTransactionInput({
                         </TableRow>
                       );
                     })}
+
+                    {loading && (
+                      <TableRow>
+                        <TableCell colSpan={7} className="text-center py-4">
+                          <div className="flex items-center justify-center gap-2 text-muted-foreground">
+                            <Loader2 className="h-4 w-4 animate-spin" />
+                            <span className="text-sm">Processing transactions...</span>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    )}
                   </TableBody>
                 </Table>
               </div>

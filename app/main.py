@@ -1,9 +1,17 @@
+import logging
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.config import settings
 
 from app.routers import auth, account, transaction, category, tag, budget, agent
+
+# Configure logging
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s | %(name)s | %(message)s',
+    datefmt='%H:%M:%S'
+)
 
 app = FastAPI(
     title=settings.PROJECT_NAME,

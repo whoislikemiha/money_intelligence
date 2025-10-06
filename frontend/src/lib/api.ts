@@ -172,4 +172,126 @@ export const tagApi = {
 export const agentApi = {
   processText: (data: AgentProcessRequest): Promise<AgentProcessResponse> =>
     apiClient.post('/agent/process', data),
+
+  /**
+   * Stream transaction previews as they are created.
+   * Uses Server-Sent Events (SSE) for real-time updates.
+   *
+   * @param data - Request data with text and account_id
+   * @param onTransaction - Callback invoked when each transaction is ready
+   * @param onError - Callback invoked on error
+   * @param onComplete - Callback invoked when streaming is complete
+   * @returns Cleanup function to close the stream
+   */
+  processTextStream: (
+    data: AgentProcessRequest,
+    onTransaction: (transaction: any) => void,
+    onError?: (error: string) => void,
+    onComplete?: () => void
+  ): (() => void) => {
+    const token = localStorage.getItem('token');
+    const url = `${API_BASE_URL}/agent/process-stream`;
+
+    // Create EventSource with POST data via URL params (workaround for EventSource POST limitation)
+    // Or use fetch with streaming
+    let controller = new AbortController();
+
+    const streamWithFetch = async () => {
+      try {
+        const response = await fetch(url, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            ...(token && { Authorization: `Bearer ${token}` }),
+          },
+          body: JSON.stringify(data),
+          signal: controller.signal,
+        });
+
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+
+        const reader = response.body?.getReader();
+        const decoder = new TextDecoder();
+
+        if (!reader) {
+          throw new Error('No response body');
+        }
+
+        let buffer = '';
+
+        try {
+          while (true) {
+            const { done, value } = await reader.read();
+
+            if (done) {
+              // Process any remaining data in buffer
+              if (buffer.trim()) {
+                const dataMatch = buffer.match(/^data: (.+)$/m);
+                if (dataMatch) {
+                  try {
+                    const event = JSON.parse(dataMatch[1]);
+                    if (event.type === 'transaction') {
+                      onTransaction(event.data);
+                    } else if (event.type === 'done') {
+                      onComplete?.();
+                    } else if (event.type === 'error') {
+                      onError?.(event.message);
+                    }
+                  } catch (e) {
+                    console.error('Failed to parse SSE message:', e);
+                  }
+                }
+              }
+              break;
+            }
+
+            // Decode the chunk and add to buffer
+            buffer += decoder.decode(value, { stream: true });
+
+            // Process complete SSE messages (separated by \n\n)
+            const messages = buffer.split('\n\n');
+            buffer = messages.pop() || ''; // Keep incomplete message in buffer
+
+            for (const message of messages) {
+              if (!message.trim()) continue;
+
+              // Parse SSE format: "data: {...}"
+              const dataMatch = message.match(/^data: (.+)$/m);
+              if (dataMatch) {
+                try {
+                  const event = JSON.parse(dataMatch[1]);
+
+                  if (event.type === 'transaction') {
+                    onTransaction(event.data);
+                  } else if (event.type === 'done') {
+                    onComplete?.();
+                  } else if (event.type === 'error') {
+                    onError?.(event.message);
+                  }
+                } catch (e) {
+                  console.error('Failed to parse SSE message:', e);
+                }
+              }
+            }
+          }
+        } finally {
+          reader.releaseLock();
+        }
+      } catch (error: any) {
+        if (error.name !== 'AbortError') {
+          console.error('Stream error:', error);
+          onError?.(error.message || 'Stream failed');
+        }
+      }
+    };
+
+    streamWithFetch();
+
+    // Return cleanup function
+    return () => {
+      controller.abort();
+    };
+  },
 };
