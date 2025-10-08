@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { agentApi, transactionApi } from '@/lib/api';
 import { TransactionPreview, Category, Tag, TransactionType } from '@/lib/types';
 import { useAuth } from '@/contexts/AuthContext';
@@ -46,26 +46,98 @@ export default function AiTransactionInput({
   const [loading, setLoading] = useState(false);
   const [creating, setCreating] = useState(false);
   const [selectedPreviews, setSelectedPreviews] = useState<Set<number>>(new Set());
+  const [streamCleanup, setStreamCleanup] = useState<(() => void) | null>(null);
+  const [plannedCount, setPlannedCount] = useState<number>(0);
+  const [processingPhase, setProcessingPhase] = useState<'idle' | 'thinking' | 'making' | 'done'>('idle');
+  const [showPreviewSection, setShowPreviewSection] = useState(false);
 
-  const handleProcess = async () => {
+  // Cleanup stream when component unmounts
+  useEffect(() => {
+    return () => {
+      if (streamCleanup) {
+        streamCleanup();
+      }
+    };
+  }, [streamCleanup]);
+
+  const handleProcess = () => {
     if (!text.trim()) return;
 
-    try {
-      setLoading(true);
-      const response = await agentApi.processText({
+    setLoading(true);
+    setShowPreviewSection(true);
+    setPreviews([]);
+    setSelectedPreviews(new Set());
+    setPlannedCount(0);
+    setProcessingPhase('thinking');
+
+    // Buffer to collect all transactions
+    const transactionBuffer: TransactionPreview[] = [];
+
+    const cleanup = agentApi.processTextStream(
+      {
         text: text.trim(),
         account_id: accountId,
-      });
+      },
+      (event) => {
+        switch (event.type) {
+          case 'planning':
+            console.log(`Agent planning ${event.count} transactions`);
+            setPlannedCount(event.count);
+            setProcessingPhase('making');
+            break;
 
-      setPreviews(response.transactions);
-      // Select all previews by default
-      setSelectedPreviews(new Set(response.transactions.map((_, idx) => idx)));
-    } catch (error) {
-      console.error('Failed to process text:', error);
-      alert('Failed to process text. Please try again.');
-    } finally {
-      setLoading(false);
-    }
+          case 'transaction':
+            // Collect transactions in buffer (they arrive instantly)
+            transactionBuffer.push(event.data);
+            break;
+
+          case 'done':
+            // All transactions collected, now display them one by one
+            setLoading(false);
+            setStreamCleanup(null);
+
+            if (transactionBuffer.length > 0) {
+              displayTransactionsStaggered(transactionBuffer);
+            } else {
+              setProcessingPhase('done');
+            }
+            break;
+
+          case 'error':
+            console.error('Stream error:', event.message);
+            alert('Failed to process text. Please try again.');
+            setLoading(false);
+            setStreamCleanup(null);
+            setProcessingPhase('idle');
+            break;
+        }
+      }
+    );
+
+    setStreamCleanup(() => cleanup);
+  };
+
+  // Display transactions one by one with a staggered delay
+  const displayTransactionsStaggered = (transactions: TransactionPreview[]) => {
+    const INITIAL_DELAY = 400; // Wait 500ms before starting to show transactions
+    const STAGGER_DELAY = 400; // 500ms between each transaction
+    const FINAL_DELAY = 200; // Keep message visible for 300ms after last transaction
+    const newSelectedPreviews = new Set<number>();
+
+    transactions.forEach((transaction, index) => {
+      setTimeout(() => {
+        setPreviews(prev => [...prev, transaction]);
+        newSelectedPreviews.add(index);
+        setSelectedPreviews(new Set(newSelectedPreviews));
+
+        // Last transaction - wait a bit before marking as done
+        if (index === transactions.length - 1) {
+          setTimeout(() => {
+            setProcessingPhase('done');
+          }, FINAL_DELAY);
+        }
+      }, INITIAL_DELAY + (index * STAGGER_DELAY));
+    });
   };
 
   const handleCreateTransactions = async () => {
@@ -86,7 +158,7 @@ export default function AiTransactionInput({
           description: preview.description,
           date: preview.date,
           user_id: user.id,
-          tags: preview.tags,
+          tags: preview.tags || [],
         });
       }
 
@@ -130,7 +202,7 @@ export default function AiTransactionInput({
         AI Input
       </Button>
 
-      <DialogContent className="sm:max-w-[700px]">
+      <DialogContent className="min-w-[800px]">
         <DialogHeader>
           <DialogTitle>AI Transaction Input</DialogTitle>
           <DialogDescription>
@@ -148,7 +220,7 @@ export default function AiTransactionInput({
                 onChange={(e) => setText(e.target.value)}
                 placeholder="e.g., Spent $50 on groceries yesterday, coffee for $5 today"
                 className="flex-1"
-                disabled={loading || previews.length > 0}
+                disabled={showPreviewSection}
                 onKeyDown={(e) => {
                   if (e.key === 'Enter' && !e.shiftKey) {
                     e.preventDefault();
@@ -156,7 +228,7 @@ export default function AiTransactionInput({
                   }
                 }}
               />
-              {previews.length === 0 && (
+              {!showPreviewSection && (
                 <Button
                   onClick={handleProcess}
                   disabled={loading || !text.trim()}
@@ -174,12 +246,29 @@ export default function AiTransactionInput({
             </div>
           </div>
 
-          {previews.length > 0 && (
+          {showPreviewSection && (
             <div className="space-y-4">
               <div className="flex items-center justify-between">
-                <h3 className="text-sm font-medium">
-                  Preview ({selectedPreviews.size} of {previews.length} selected)
-                </h3>
+                <div className="flex items-center gap-2">
+                  {processingPhase === 'thinking' && (
+                    <div className="flex items-center gap-2">
+                      <Sparkles className="h-4 w-4 text-primary animate-pulse" />
+                      <span className="text-sm font-medium">Thinking...</span>
+                    </div>
+                  )}
+                  {processingPhase === 'making' && (
+                    <div className="flex items-center gap-2">
+                      <Sparkles className="h-4 w-4 text-primary animate-pulse" />
+                      <span className="text-sm font-medium">Making {plannedCount} transaction{plannedCount !== 1 ? 's' : ''}...</span>
+                    </div>
+                  )}
+                  {processingPhase === 'done' && previews.length > 0 && (
+                    <div className="flex items-center gap-2">
+                      <Sparkles className="h-4 w-4 text-green-600" />
+                      <span className="text-sm font-medium">Done! Created {previews.length} transaction{previews.length !== 1 ? 's' : ''}</span>
+                    </div>
+                  )}
+                </div>
                 <Button
                   variant="ghost"
                   size="sm"
@@ -187,15 +276,18 @@ export default function AiTransactionInput({
                     setText('');
                     setPreviews([]);
                     setSelectedPreviews(new Set());
+                    setShowPreviewSection(false);
+                    setProcessingPhase('idle');
                   }}
+                  disabled={loading}
                 >
                   Clear
                 </Button>
               </div>
 
-              <div className="border rounded-lg">
+              <div className="border rounded-lg max-h-[500px] overflow-auto">
                 <Table>
-                  <TableHeader>
+                  <TableHeader className="sticky top-0 bg-background z-10">
                     <TableRow>
                       <TableHead className="w-12"></TableHead>
                       <TableHead>Date</TableHead>
@@ -215,7 +307,9 @@ export default function AiTransactionInput({
                       return (
                         <TableRow
                           key={index}
-                          className={`cursor-pointer ${isSelected ? 'bg-accent/50' : 'opacity-50'}`}
+                          className={`cursor-pointer transition-all duration-300 ${
+                            isSelected ? 'bg-accent/50' : 'opacity-50'
+                          }`}
                           onClick={() => togglePreview(index)}
                         >
                           <TableCell>
@@ -248,7 +342,7 @@ export default function AiTransactionInput({
                                 variant="outline"
                                 style={{
                                   backgroundColor: category.color,
-                                  color: 'white',
+                                  color: 'background',
                                   borderColor: category.color
                                 }}
                               >
@@ -260,7 +354,7 @@ export default function AiTransactionInput({
                           </TableCell>
                           <TableCell>
                             <div className="flex flex-wrap gap-1">
-                              {preview.tags.map(tagId => {
+                              {(preview.tags || []).map(tagId => {
                                 const tag = getTagById(tagId);
                                 return tag ? (
                                   <Badge
@@ -281,6 +375,14 @@ export default function AiTransactionInput({
                         </TableRow>
                       );
                     })}
+
+                    {loading && previews.length === 0 && (
+                      <TableRow>
+                        <TableCell colSpan={7} className="text-center py-4">
+                          <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+                        </TableCell>
+                      </TableRow>
+                    )}
                   </TableBody>
                 </Table>
               </div>

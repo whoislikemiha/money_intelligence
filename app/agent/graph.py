@@ -25,6 +25,7 @@ def create_agent_graph():
     llm = ChatAnthropic(
         model="claude-3-5-haiku-20241022",
         temperature=0,
+        max_tokens=4096,  # Increased from default 1024 to handle many transactions
         api_key=settings.ANTHROPIC_API_KEY
     )
     llm_with_tools = llm.bind_tools(tools)
@@ -67,8 +68,8 @@ def create_agent_graph():
         },
     )
 
-    # After tools, always go back to agent
-    workflow.add_edge("tools", "agent")
+    # After tools execute, end (no loop back)
+    workflow.add_edge("tools", END)
 
     # Compile the graph
     return workflow.compile()
