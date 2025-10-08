@@ -153,10 +153,8 @@ async def parse_transactions_stream(
     user_tags: List[Dict[str, Any]],
 ) -> AsyncGenerator[Dict[str, Any], None]:
     """
-    Stream transaction previews as they are created (event-based).
-
-    Yields transaction dictionaries as soon as each tool call completes,
-    allowing for real-time UI updates.
+    Stream transaction previews as tools execute in parallel.
+    Yields events for planning, tool starts, and completed transactions.
 
     Args:
         text: Natural language input from user
@@ -166,7 +164,10 @@ async def parse_transactions_stream(
         user_tags: List of user's tags
 
     Yields:
-        Transaction dictionaries as they are created
+        Event dictionaries with different types:
+        - {"type": "planning", "count": N} - when agent plans N tool calls
+        - {"type": "transaction_start", "description": "...", "amount": X} - when tool starts
+        - {"type": "transaction", "data": {...}} - when tool completes
     """
     # Build initial state
     initial_state: AgentState = {
@@ -193,73 +194,59 @@ async def parse_transactions_stream(
 
     today = date.today().isoformat()
     tracker = ExecutionTracker()
-    tool_calls_seen = set()  # Track which tool calls we've already processed
 
     # Stream events from the graph
     async for event in agent_graph.astream_events(initial_state, version="v2"):
         event_type = event["event"]
 
-        # Stream LLM output as it's being generated (incremental tool calls)
-        if event_type == "on_chat_model_stream":
-            chunk = event.get("data", {}).get("chunk", {})
-
-            # Check if this chunk contains tool call information
-            if hasattr(chunk, "tool_call_chunks") and chunk.tool_call_chunks:
-                for tool_chunk in chunk.tool_call_chunks:
-                    # When a tool call is complete in the stream
-                    if tool_chunk.get("name") == "create_transaction_preview":
-                        tool_id = tool_chunk.get("id")
-                        args = tool_chunk.get("args")
-
-                        # Only process complete tool calls we haven't seen yet
-                        if tool_id and args and tool_id not in tool_calls_seen:
-                            # Check if args has all required fields
-                            if all(key in args for key in ["amount", "description", "category_id", "transaction_type"]):
-                                tool_calls_seen.add(tool_id)
-                                logger.info(f"Streaming tool call: ${args['amount']} - {args['description']}")
-
-                                transaction = {
-                                    "amount": args["amount"],
-                                    "description": args["description"],
-                                    "category_id": args["category_id"],
-                                    "type": args["transaction_type"],
-                                    "date": args.get("transaction_date") or today,
-                                    "tags": args.get("tag_ids", []) or [],
-                                }
-                                yield transaction
-
-        # Log LLM thinking/reasoning when complete
-        elif event_type == "on_chat_model_end":
+        # Log agent reasoning when LLM completes
+        if event_type == "on_chat_model_end":
             output = event.get("data", {}).get("output", {})
             if hasattr(output, "content"):
                 reasoning = output.content
                 if reasoning:
                     logger.info(f"Agent reasoning: {reasoning[:200]}...")
 
-            # Log final tool call summary
+            # Yield planning event when agent decides on tool calls
             if hasattr(output, "tool_calls") and output.tool_calls:
-                logger.info(f"Agent requested {len(output.tool_calls)} tool calls total")
+                logger.info(f"Agent planning {len(output.tool_calls)} parallel tool calls")
+                yield {
+                    "type": "planning",
+                    "count": len(output.tool_calls)
+                }
 
         elif event_type == "on_tool_start":
             run_id = event.get("run_id", "")
             tool_name = event.get("name", "")
             tracker.start_tool(run_id, tool_name)
 
+            # Yield start event to show loading states
+            if tool_name == "create_transaction_preview":
+                tool_input = event.get("data", {}).get("input", {})
+                yield {
+                    "type": "transaction_start",
+                    "description": tool_input.get("description", ""),
+                    "amount": tool_input.get("amount", 0)
+                }
+
         elif event_type == "on_tool_end":
             run_id = event.get("run_id", "")
             tool_name = event.get("name", "")
             tracker.end_tool(run_id, tool_name)
 
+            # Stream completed transactions as each tool finishes
             if tool_name == "create_transaction_preview":
                 tool_input = event["data"].get("input", {})
-                transaction = {
-                    "amount": tool_input["amount"],
-                    "description": tool_input["description"],
-                    "category_id": tool_input["category_id"],
-                    "type": tool_input["transaction_type"],
-                    "date": tool_input.get("transaction_date") or today,
-                    "tags": tool_input.get("tag_ids", []) or [],
+                yield {
+                    "type": "transaction",
+                    "data": {
+                        "amount": tool_input["amount"],
+                        "description": tool_input["description"],
+                        "category_id": tool_input["category_id"],
+                        "type": tool_input["transaction_type"],
+                        "date": tool_input.get("transaction_date") or today,
+                        "tags": tool_input.get("tag_ids", []) or [],
+                    }
                 }
-                yield transaction
 
     tracker.finish()

@@ -47,6 +47,9 @@ export default function AiTransactionInput({
   const [creating, setCreating] = useState(false);
   const [selectedPreviews, setSelectedPreviews] = useState<Set<number>>(new Set());
   const [streamCleanup, setStreamCleanup] = useState<(() => void) | null>(null);
+  const [plannedCount, setPlannedCount] = useState<number>(0);
+  const [processingPhase, setProcessingPhase] = useState<'idle' | 'thinking' | 'making' | 'done'>('idle');
+  const [showPreviewSection, setShowPreviewSection] = useState(false);
 
   // Cleanup stream when component unmounts
   useEffect(() => {
@@ -61,40 +64,80 @@ export default function AiTransactionInput({
     if (!text.trim()) return;
 
     setLoading(true);
-    setPreviews([]); // Clear previous previews
+    setShowPreviewSection(true);
+    setPreviews([]);
     setSelectedPreviews(new Set());
+    setPlannedCount(0);
+    setProcessingPhase('thinking');
 
-    // Track selected indices as transactions arrive
-    let currentIndex = 0;
-    const newSelectedPreviews = new Set<number>();
+    // Buffer to collect all transactions
+    const transactionBuffer: TransactionPreview[] = [];
 
     const cleanup = agentApi.processTextStream(
       {
         text: text.trim(),
         account_id: accountId,
       },
-      // onTransaction: Add each transaction as it arrives
-      (transaction) => {
-        setPreviews((prev) => [...prev, transaction]);
-        newSelectedPreviews.add(currentIndex);
-        setSelectedPreviews(new Set(newSelectedPreviews));
-        currentIndex++;
-      },
-      // onError
-      (error) => {
-        console.error('Stream error:', error);
-        alert('Failed to process text. Please try again.');
-        setLoading(false);
-        setStreamCleanup(null);
-      },
-      // onComplete
-      () => {
-        setLoading(false);
-        setStreamCleanup(null);
+      (event) => {
+        switch (event.type) {
+          case 'planning':
+            console.log(`Agent planning ${event.count} transactions`);
+            setPlannedCount(event.count);
+            setProcessingPhase('making');
+            break;
+
+          case 'transaction':
+            // Collect transactions in buffer (they arrive instantly)
+            transactionBuffer.push(event.data);
+            break;
+
+          case 'done':
+            // All transactions collected, now display them one by one
+            setLoading(false);
+            setStreamCleanup(null);
+
+            if (transactionBuffer.length > 0) {
+              displayTransactionsStaggered(transactionBuffer);
+            } else {
+              setProcessingPhase('done');
+            }
+            break;
+
+          case 'error':
+            console.error('Stream error:', event.message);
+            alert('Failed to process text. Please try again.');
+            setLoading(false);
+            setStreamCleanup(null);
+            setProcessingPhase('idle');
+            break;
+        }
       }
     );
 
     setStreamCleanup(() => cleanup);
+  };
+
+  // Display transactions one by one with a staggered delay
+  const displayTransactionsStaggered = (transactions: TransactionPreview[]) => {
+    const INITIAL_DELAY = 400; // Wait 500ms before starting to show transactions
+    const STAGGER_DELAY = 400; // 500ms between each transaction
+    const FINAL_DELAY = 200; // Keep message visible for 300ms after last transaction
+    const newSelectedPreviews = new Set<number>();
+
+    transactions.forEach((transaction, index) => {
+      setTimeout(() => {
+        setPreviews(prev => [...prev, transaction]);
+        newSelectedPreviews.add(index);
+        setSelectedPreviews(new Set(newSelectedPreviews));
+
+        // Last transaction - wait a bit before marking as done
+        if (index === transactions.length - 1) {
+          setTimeout(() => {
+            setProcessingPhase('done');
+          }, FINAL_DELAY);
+        }
+      }, INITIAL_DELAY + (index * STAGGER_DELAY));
+    });
   };
 
   const handleCreateTransactions = async () => {
@@ -115,7 +158,7 @@ export default function AiTransactionInput({
           description: preview.description,
           date: preview.date,
           user_id: user.id,
-          tags: preview.tags,
+          tags: preview.tags || [],
         });
       }
 
@@ -177,7 +220,7 @@ export default function AiTransactionInput({
                 onChange={(e) => setText(e.target.value)}
                 placeholder="e.g., Spent $50 on groceries yesterday, coffee for $5 today"
                 className="flex-1"
-                disabled={loading || previews.length > 0}
+                disabled={showPreviewSection}
                 onKeyDown={(e) => {
                   if (e.key === 'Enter' && !e.shiftKey) {
                     e.preventDefault();
@@ -185,7 +228,7 @@ export default function AiTransactionInput({
                   }
                 }}
               />
-              {previews.length === 0 && (
+              {!showPreviewSection && (
                 <Button
                   onClick={handleProcess}
                   disabled={loading || !text.trim()}
@@ -203,18 +246,27 @@ export default function AiTransactionInput({
             </div>
           </div>
 
-          {previews.length > 0 && (
+          {showPreviewSection && (
             <div className="space-y-4">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
-                  <h3 className="text-sm font-medium">
-                    Preview ({selectedPreviews.size} of {previews.length} selected)
-                  </h3>
-                  {loading && (
-                    <span className="text-xs text-muted-foreground flex items-center gap-1">
-                      <Loader2 className="h-3 w-3 animate-spin" />
-                      streaming...
-                    </span>
+                  {processingPhase === 'thinking' && (
+                    <div className="flex items-center gap-2">
+                      <Sparkles className="h-4 w-4 text-primary animate-pulse" />
+                      <span className="text-sm font-medium">Thinking...</span>
+                    </div>
+                  )}
+                  {processingPhase === 'making' && (
+                    <div className="flex items-center gap-2">
+                      <Sparkles className="h-4 w-4 text-primary animate-pulse" />
+                      <span className="text-sm font-medium">Making {plannedCount} transaction{plannedCount !== 1 ? 's' : ''}...</span>
+                    </div>
+                  )}
+                  {processingPhase === 'done' && previews.length > 0 && (
+                    <div className="flex items-center gap-2">
+                      <Sparkles className="h-4 w-4 text-green-600" />
+                      <span className="text-sm font-medium">Done! Created {previews.length} transaction{previews.length !== 1 ? 's' : ''}</span>
+                    </div>
                   )}
                 </div>
                 <Button
@@ -224,6 +276,8 @@ export default function AiTransactionInput({
                     setText('');
                     setPreviews([]);
                     setSelectedPreviews(new Set());
+                    setShowPreviewSection(false);
+                    setProcessingPhase('idle');
                   }}
                   disabled={loading}
                 >
@@ -253,7 +307,9 @@ export default function AiTransactionInput({
                       return (
                         <TableRow
                           key={index}
-                          className={`cursor-pointer ${isSelected ? 'bg-accent/50' : 'opacity-50'}`}
+                          className={`cursor-pointer transition-all duration-300 ${
+                            isSelected ? 'bg-accent/50' : 'opacity-50'
+                          }`}
                           onClick={() => togglePreview(index)}
                         >
                           <TableCell>
@@ -286,7 +342,7 @@ export default function AiTransactionInput({
                                 variant="outline"
                                 style={{
                                   backgroundColor: category.color,
-                                  color: 'white',
+                                  color: 'background',
                                   borderColor: category.color
                                 }}
                               >
@@ -298,7 +354,7 @@ export default function AiTransactionInput({
                           </TableCell>
                           <TableCell>
                             <div className="flex flex-wrap gap-1">
-                              {preview.tags.map(tagId => {
+                              {(preview.tags || []).map(tagId => {
                                 const tag = getTagById(tagId);
                                 return tag ? (
                                   <Badge
@@ -320,13 +376,10 @@ export default function AiTransactionInput({
                       );
                     })}
 
-                    {loading && (
+                    {loading && previews.length === 0 && (
                       <TableRow>
                         <TableCell colSpan={7} className="text-center py-4">
-                          <div className="flex items-center justify-center gap-2 text-muted-foreground">
-                            <Loader2 className="h-4 w-4 animate-spin" />
-                            <span className="text-sm">Processing transactions...</span>
-                          </div>
+                          <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
                         </TableCell>
                       </TableRow>
                     )}

@@ -79,20 +79,17 @@ async def process_agent_input_stream(
     ]
 
     async def event_generator():
-        """Generate SSE events for each transaction as it's created"""
+        """Generate SSE events for each event from the agent stream"""
         try:
-            async for transaction in parse_transactions_stream(
+            async for event in parse_transactions_stream(
                 text=request.text,
                 account_id=request.account_id,
                 user_id=current_user.id,
                 user_categories=user_categories,
                 user_tags=user_tags,
             ):
-                # Convert to JSON and format as SSE
-                event_data = json.dumps({
-                    "type": "transaction",
-                    "data": transaction
-                })
+                # Pass through the event as-is (already has correct type)
+                event_data = json.dumps(event)
                 yield f"data: {event_data}\n\n"
 
             # Send completion event

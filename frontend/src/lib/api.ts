@@ -178,16 +178,12 @@ export const agentApi = {
    * Uses Server-Sent Events (SSE) for real-time updates.
    *
    * @param data - Request data with text and account_id
-   * @param onTransaction - Callback invoked when each transaction is ready
-   * @param onError - Callback invoked on error
-   * @param onComplete - Callback invoked when streaming is complete
+   * @param onEvent - Callback invoked for each event (planning, transaction_start, transaction, done, error)
    * @returns Cleanup function to close the stream
    */
   processTextStream: (
     data: AgentProcessRequest,
-    onTransaction: (transaction: any) => void,
-    onError?: (error: string) => void,
-    onComplete?: () => void
+    onEvent: (event: any) => void
   ): (() => void) => {
     const token = localStorage.getItem('token');
     const url = `${API_BASE_URL}/agent/process-stream`;
@@ -232,13 +228,7 @@ export const agentApi = {
                 if (dataMatch) {
                   try {
                     const event = JSON.parse(dataMatch[1]);
-                    if (event.type === 'transaction') {
-                      onTransaction(event.data);
-                    } else if (event.type === 'done') {
-                      onComplete?.();
-                    } else if (event.type === 'error') {
-                      onError?.(event.message);
-                    }
+                    onEvent(event);
                   } catch (e) {
                     console.error('Failed to parse SSE message:', e);
                   }
@@ -262,14 +252,7 @@ export const agentApi = {
               if (dataMatch) {
                 try {
                   const event = JSON.parse(dataMatch[1]);
-
-                  if (event.type === 'transaction') {
-                    onTransaction(event.data);
-                  } else if (event.type === 'done') {
-                    onComplete?.();
-                  } else if (event.type === 'error') {
-                    onError?.(event.message);
-                  }
+                  onEvent(event);
                 } catch (e) {
                   console.error('Failed to parse SSE message:', e);
                 }
@@ -282,7 +265,7 @@ export const agentApi = {
       } catch (error: any) {
         if (error.name !== 'AbortError') {
           console.error('Stream error:', error);
-          onError?.(error.message || 'Stream failed');
+          onEvent({ type: 'error', message: error.message || 'Stream failed' });
         }
       }
     };
