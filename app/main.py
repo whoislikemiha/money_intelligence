@@ -5,6 +5,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from app.config import settings
 
 from app.routers import auth, account, transaction, category, tag, budget, agent
+from app.assistant import router as assistant_router
 
 # Configure logging
 logging.basicConfig(
@@ -35,6 +36,7 @@ app.include_router(category.router, prefix=f"{settings.API_V1_STR}/category", ta
 app.include_router(tag.router, prefix=f"{settings.API_V1_STR}/tag", tags=["tag"])
 app.include_router(budget.router, prefix=f"{settings.API_V1_STR}/budget", tags=["budget"])
 app.include_router(agent.router, prefix=f"{settings.API_V1_STR}/agent", tags=["agent"])
+app.include_router(assistant_router.router, prefix=f"{settings.API_V1_STR}/assistant", tags=["assistant"])
 
 @app.get("/api")
 async def root():

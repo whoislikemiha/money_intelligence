@@ -20,7 +20,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import {Wallet, Settings, DollarSign, LogOut, User, BrainCircuit} from 'lucide-react'
+import {Wallet, Settings, DollarSign, LogOut, User, BrainCircuit, Sparkles} from 'lucide-react'
 import { Account } from '@/lib/types'
 
 interface NavbarProps {
@@ -68,6 +68,14 @@ export function Navbar({ accounts, selectedAccount, onAccountChange }: NavbarPro
               >
                 <DollarSign className="h-4 w-4" />
                 Budgets
+              </Button>
+              <Button
+                variant="ghost"
+                onClick={() => router.push('/dashboard/assistant')}
+                className="gap-2"
+              >
+                <Sparkles className="h-4 w-4" />
+                Assistant
               </Button>
               <Button
                 variant="ghost"
