@@ -278,3 +278,106 @@ export const agentApi = {
     };
   },
 };
+
+import { ChatRequest, ChatEvent } from './types';
+
+// Assistant API functions
+export const assistantApi = {
+  /**
+   * Stream chat messages with the financial assistant.
+   * Uses Server-Sent Events (SSE) for real-time updates.
+   *
+   * @param data - Chat request with message and account_id
+   * @param onEvent - Callback invoked for each event
+   * @returns Cleanup function to close the stream
+   */
+  chatStream: (
+    data: ChatRequest,
+    onEvent: (event: ChatEvent) => void
+  ): (() => void) => {
+    const token = localStorage.getItem('token');
+    const url = `${API_BASE_URL}/assistant/chat-stream`;
+
+    let controller = new AbortController();
+
+    const streamWithFetch = async () => {
+      try {
+        const response = await fetch(url, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            ...(token && { Authorization: `Bearer ${token}` }),
+          },
+          body: JSON.stringify(data),
+          signal: controller.signal,
+        });
+
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+
+        const reader = response.body?.getReader();
+        const decoder = new TextDecoder();
+
+        if (!reader) {
+          throw new Error('No response body');
+        }
+
+        let buffer = '';
+
+        try {
+          while (true) {
+            const { done, value } = await reader.read();
+
+            if (done) {
+              if (buffer.trim()) {
+                const dataMatch = buffer.match(/^data: (.+)$/m);
+                if (dataMatch) {
+                  try {
+                    const event = JSON.parse(dataMatch[1]);
+                    onEvent(event);
+                  } catch (e) {
+                    console.error('Failed to parse SSE message:', e);
+                  }
+                }
+              }
+              break;
+            }
+
+            buffer += decoder.decode(value, { stream: true });
+
+            const messages = buffer.split('\n\n');
+            buffer = messages.pop() || '';
+
+            for (const message of messages) {
+              if (!message.trim()) continue;
+
+              const dataMatch = message.match(/^data: (.+)$/m);
+              if (dataMatch) {
+                try {
+                  const event = JSON.parse(dataMatch[1]);
+                  onEvent(event);
+                } catch (e) {
+                  console.error('Failed to parse SSE message:', e);
+                }
+              }
+            }
+          }
+        } finally {
+          reader.releaseLock();
+        }
+      } catch (error: any) {
+        if (error.name !== 'AbortError') {
+          console.error('Stream error:', error);
+          onEvent({ type: 'error', message: error.message || 'Stream failed', recoverable: false });
+        }
+      }
+    };
+
+    streamWithFetch();
+
+    return () => {
+      controller.abort();
+    };
+  },
+};

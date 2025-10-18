@@ -155,3 +155,41 @@ export interface AgentProcessRequest {
 export interface AgentProcessResponse {
   transactions: TransactionPreview[];
 }
+
+// Assistant types
+export interface ChatMessage {
+  role: 'user' | 'assistant' | 'system';
+  content: string;
+  timestamp: Date;
+  tool_calls?: ToolCall[];
+}
+
+export interface ToolCall {
+  tool_name: string;
+  tool_input: any;
+  tool_output?: any;
+  status: 'pending' | 'running' | 'success' | 'error';
+  error?: string;
+}
+
+export interface ChatRequest {
+  message: string;
+  account_id: number;
+  conversation_id?: string;
+}
+
+export interface ChatResponse {
+  message: string;
+  conversation_id: string;
+  tool_calls?: ToolCall[];
+}
+
+// SSE Event types
+export type ChatEvent =
+  | { type: 'thinking' }
+  | { type: 'tool_start'; tool_name: string; tool_input: any }
+  | { type: 'tool_end'; tool_name: string; tool_output: any; success: boolean; error?: string }
+  | { type: 'message_chunk'; content: string; is_final: boolean }
+  | { type: 'transaction_previews'; transactions: TransactionPreview[]; count: number }
+  | { type: 'done'; conversation_id: string }
+  | { type: 'error'; message: string; recoverable: boolean };
