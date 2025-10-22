@@ -1,16 +1,16 @@
 """Tag management tools"""
 
-from typing import Annotated
 from langchain_core.tools import tool
 from sqlalchemy.orm import Session
 
+from app.assistant.schemas.tools import ListTagsInput
 from app.crud.tag_crud import TagCrud
 
 
 def create_tag_tools(db: Session, user_id: int):
     """Factory to create tag tools with database and user context"""
 
-    @tool
+    @tool(args_schema=ListTagsInput)
     def list_tags() -> str:
         """
         List all available tags.

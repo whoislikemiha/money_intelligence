@@ -1,9 +1,10 @@
 """Financial assistant chat service"""
 
 import asyncio
+import json
 import logging
 from typing import AsyncGenerator, Dict, Any
-from datetime import datetime
+from datetime import datetime, timedelta
 from sqlalchemy.orm import Session
 
 from app.assistant.graph import create_assistant_graph
@@ -21,6 +22,7 @@ logger = logging.getLogger(__name__)
 def serialize_tool_input(tool_input: Any) -> Any:
     """
     Serialize tool input for JSON transmission in SSE events.
+    Handles Pydantic models, dicts, lists, and other types.
 
     Args:
         tool_input: The tool input to serialize
@@ -32,9 +34,13 @@ def serialize_tool_input(tool_input: Any) -> Any:
     if isinstance(tool_input, (dict, list, str, int, float, bool, type(None))):
         return tool_input
 
-    # Pydantic models
+    # Pydantic v2 models (preferred)
     if hasattr(tool_input, 'model_dump'):
         return tool_input.model_dump()
+
+    # Pydantic v1 models (fallback)
+    if hasattr(tool_input, 'dict'):
+        return tool_input.dict()
 
     # Objects with __dict__
     if hasattr(tool_input, '__dict__'):
@@ -142,7 +148,6 @@ def load_user_context(db: Session, user_id: int, account_id: int) -> UserContext
     # Get recent transactions (last 30 days)
     transactions = TransactionCrud.get_all(db, user_id)
     # Filter last 30 days
-    from datetime import timedelta
     thirty_days_ago = datetime.now() - timedelta(days=30)
     recent_transactions = [
         {
@@ -288,7 +293,6 @@ async def chat_stream(
                 # Check if this is a special event response (structured JSON with marker)
                 special_event_handled = False
                 try:
-                    import json
                     output_data = json.loads(output_str)
 
                     if isinstance(output_data, dict) and "__special_event__" in output_data:

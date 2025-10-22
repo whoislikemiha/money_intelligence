@@ -1,10 +1,17 @@
 """Analytics tools for financial insights"""
 
-from typing import Annotated, Optional, Literal
 from langchain_core.tools import tool
 from datetime import datetime, timedelta
 from sqlalchemy.orm import Session
 
+from app.assistant.schemas.tools import (
+    GetSpendingByCategoryInput,
+    GetSpendingTrendsInput,
+    GetBudgetAnalysisInput,
+    GetTopExpensesInput,
+    GetIncomeVsExpenseInput,
+    GetSpendingByTagInput,
+)
 from app.assistant.analytics.queries import (
     spending_by_category_query,
     spending_over_time_query,
@@ -30,10 +37,10 @@ from app.database.models.enums import TransactionType
 def create_analytics_tools(db: Session, user_id: int, account_id: int):
     """Factory to create analytics tools with database and user context"""
 
-    @tool
+    @tool(args_schema=GetSpendingByCategoryInput)
     def get_spending_by_category(
-        period: Annotated[Literal["today", "week", "month", "year", "all"], "Time period"] = "month",
-        transaction_type: Annotated[Optional[Literal["income", "expense"]], "Filter by transaction type"] = "expense"
+        period: str = "month",
+        transaction_type: str | None = "expense"
     ) -> str:
         """
         Get spending or income broken down by category.
@@ -74,10 +81,10 @@ def create_analytics_tools(db: Session, user_id: int, account_id: int):
             for item in formatted["data"]
         )
 
-    @tool
+    @tool(args_schema=GetSpendingTrendsInput)
     def get_spending_trends(
-        period: Annotated[Literal["week", "month", "quarter", "year"], "Time period"] = "month",
-        group_by: Annotated[Literal["day", "week", "month"], "Group results by time unit"] = "day"
+        period: str = "month",
+        group_by: str = "day"
     ) -> str:
         """
         Get spending trends over time, showing income and expenses by day/week/month.
@@ -108,10 +115,10 @@ def create_analytics_tools(db: Session, user_id: int, account_id: int):
         formatted = format_spending_over_time(results, group_by)
         return formatted["summary"]
 
-    @tool
+    @tool(args_schema=GetBudgetAnalysisInput)
     def get_budget_analysis(
-        month: Annotated[Optional[int], "Month number (1-12), defaults to current month"] = None,
-        year: Annotated[Optional[int], "Year (e.g., 2024), defaults to current year"] = None
+        month: int | None = None,
+        year: int | None = None
     ) -> str:
         """
         Analyze budget utilization for each category.
@@ -140,10 +147,10 @@ def create_analytics_tools(db: Session, user_id: int, account_id: int):
 
         return formatted["summary"] + "\n\n" + "\n".join(details)
 
-    @tool
+    @tool(args_schema=GetTopExpensesInput)
     def get_top_expenses(
-        period: Annotated[Literal["week", "month", "year", "all"], "Time period"] = "month",
-        limit: Annotated[int, "Number of top expenses to return (1-50)"] = 10
+        period: str = "month",
+        limit: int = 10
     ) -> str:
         """
         Get the highest expense transactions for a given period.
@@ -184,9 +191,9 @@ def create_analytics_tools(db: Session, user_id: int, account_id: int):
 
         return formatted["summary"] + "\n\n" + "\n".join(details)
 
-    @tool
+    @tool(args_schema=GetIncomeVsExpenseInput)
     def get_income_vs_expense(
-        period: Annotated[Literal["today", "week", "month", "year", "all"], "Time period"] = "month"
+        period: str = "month"
     ) -> str:
         """
         Compare total income vs expenses for a period.
@@ -216,9 +223,9 @@ def create_analytics_tools(db: Session, user_id: int, account_id: int):
         formatted = format_income_vs_expense(result)
         return formatted["summary"] + f" (Based on {formatted['data']['total_transactions']} transactions)"
 
-    @tool
+    @tool(args_schema=GetSpendingByTagInput)
     def get_spending_by_tag(
-        period: Annotated[Literal["week", "month", "year", "all"], "Time period"] = "month"
+        period: str = "month"
     ) -> str:
         """
         Get spending broken down by tags.

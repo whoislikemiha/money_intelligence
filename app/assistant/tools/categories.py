@@ -1,16 +1,16 @@
 """Category management tools"""
 
-from typing import Annotated
 from langchain_core.tools import tool
 from sqlalchemy.orm import Session
 
+from app.assistant.schemas.tools import ListCategoriesInput
 from app.crud.category_crud import CategoryCrud
 
 
 def create_category_tools(db: Session, user_id: int):
     """Factory to create category tools with database and user context"""
 
-    @tool
+    @tool(args_schema=ListCategoriesInput)
     def list_categories() -> str:
         """
         List all available categories.

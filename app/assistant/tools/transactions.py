@@ -1,10 +1,10 @@
 """Transaction creation tool - delegates to existing transaction agent"""
 
-from typing import Annotated
 from langchain_core.tools import tool
 from sqlalchemy.orm import Session
 import json
 
+from app.assistant.schemas.tools import CreateTransactionsInput, TransactionPreviewsOutput
 from app.agent.service import parse_transactions
 from app.crud.category_crud import CategoryCrud
 from app.crud.tag_crud import TagCrud
@@ -13,10 +13,8 @@ from app.crud.tag_crud import TagCrud
 def create_transaction_tools(db: Session, user_id: int, account_id: int):
     """Factory to create transaction tools with database and user context"""
 
-    @tool
-    def create_transactions(
-        text: Annotated[str, "Natural language description of transactions to create"]
-    ) -> str:
+    @tool(args_schema=CreateTransactionsInput)
+    def create_transactions(text: str) -> str:
         """
         Parse natural language text to create transaction previews.
         Use this when the user wants to add transactions by describing them.

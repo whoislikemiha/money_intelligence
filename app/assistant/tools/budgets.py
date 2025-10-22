@@ -1,9 +1,9 @@
 """Budget management tools"""
 
-from typing import Annotated
 from langchain_core.tools import tool
 from sqlalchemy.orm import Session
 
+from app.assistant.schemas.tools import ListBudgetsInput
 from app.crud.budget_crud import BudgetCrud
 from app.crud.category_crud import CategoryCrud
 
@@ -11,7 +11,7 @@ from app.crud.category_crud import CategoryCrud
 def create_budget_tools(db: Session, user_id: int):
     """Factory to create budget tools with database and user context"""
 
-    @tool
+    @tool(args_schema=ListBudgetsInput)
     def list_budgets() -> str:
         """
         List all budgets with their categories and amounts.

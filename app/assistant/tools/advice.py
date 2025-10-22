@@ -1,20 +1,20 @@
 """Financial advice tool"""
 
-from typing import Annotated, Optional
 from langchain_core.tools import tool
 from langchain_anthropic import ChatAnthropic
 from sqlalchemy.orm import Session
 
+from app.assistant.schemas.tools import GetFinancialAdviceInput
 from app.config import settings
 
 
 def create_advice_tools(db: Session, user_id: int, user_context: dict):
     """Factory to create financial advice tools with context"""
 
-    @tool
+    @tool(args_schema=GetFinancialAdviceInput)
     def get_financial_advice(
-        question: Annotated[str, "Specific financial question or area for advice"],
-        context: Annotated[Optional[str], "Additional context like recent spending, budgets, goals"] = None
+        question: str,
+        context: str | None = None
     ) -> str:
         """
         Get personalized financial advice based on the user's data and question.
