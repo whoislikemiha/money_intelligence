@@ -4,7 +4,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.config import settings
 
-from app.routers import auth, account, transaction, category, tag, budget, agent
+from app.routers import auth, account, transaction, category, tag, budget, agent, reminder, savings_goal
 from app.assistant import router as assistant_router
 
 # Configure logging
@@ -35,6 +35,8 @@ app.include_router(transaction.router, prefix=f"{settings.API_V1_STR}/transactio
 app.include_router(category.router, prefix=f"{settings.API_V1_STR}/category", tags=["category"])
 app.include_router(tag.router, prefix=f"{settings.API_V1_STR}/tag", tags=["tag"])
 app.include_router(budget.router, prefix=f"{settings.API_V1_STR}/budget", tags=["budget"])
+app.include_router(reminder.router, prefix=f"{settings.API_V1_STR}/reminder", tags=["reminder"])
+app.include_router(savings_goal.router, prefix=f"{settings.API_V1_STR}/savings-goal", tags=["savings-goal"])
 app.include_router(agent.router, prefix=f"{settings.API_V1_STR}/agent", tags=["agent"])
 app.include_router(assistant_router.router, prefix=f"{settings.API_V1_STR}/assistant", tags=["assistant"])
 

@@ -92,8 +92,7 @@ When answering questions:
 2. Use the tools available to get accurate data - don't make assumptions
 3. Provide clear, actionable insights
 4. Format numbers as currency when appropriate
-5. If you need more context, ask clarifying questions
-
+5. Keep it short and concise.
 Remember: Always use tools to get real data rather than making assumptions. If a user asks about their spending, use the analytics tools to get actual numbers.
 """
 

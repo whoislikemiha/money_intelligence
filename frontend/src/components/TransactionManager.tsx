@@ -32,16 +32,27 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { Plus, Trash2, TrendingUp, TrendingDown, Pencil } from 'lucide-react';
+import { Plus, Trash2, TrendingUp, TrendingDown, Pencil, X } from 'lucide-react';
 import TransactionFiltersComponent, { TransactionFilters } from './TransactionFilters';
 import AiTransactionInput from './AiTransactionInput';
 
 interface TransactionManagerProps {
   accountId: number;
   onTransactionChange?: () => void;
+  initialFilters?: TransactionFilters;
+  showHeader?: boolean;
+  customTitle?: string;
+  onClose?: () => void;
 }
 
-export default function TransactionManager({ accountId, onTransactionChange }: TransactionManagerProps) {
+export default function TransactionManager({
+  accountId,
+  onTransactionChange,
+  initialFilters,
+  showHeader = true,
+  customTitle,
+  onClose
+}: TransactionManagerProps) {
   const { user } = useAuth();
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
@@ -51,7 +62,7 @@ export default function TransactionManager({ accountId, onTransactionChange }: T
   const [editingTransaction, setEditingTransaction] = useState<Transaction | null>(null);
   const [tagDialogOpen, setTagDialogOpen] = useState(false);
   const [newTagData, setNewTagData] = useState({ name: '', color: '#3b82f6' });
-  const [filters, setFilters] = useState<TransactionFilters>({
+  const [filters, setFilters] = useState<TransactionFilters>(initialFilters || {
     startDate: '',
     endDate: '',
     categoryIds: [],
@@ -71,6 +82,12 @@ export default function TransactionManager({ accountId, onTransactionChange }: T
     loadCategories();
     loadTags();
   }, []);
+
+  useEffect(() => {
+    if (initialFilters) {
+      setFilters(initialFilters);
+    }
+  }, [initialFilters]);
 
   const loadTransactions = async () => {
     try {
@@ -235,6 +252,9 @@ export default function TransactionManager({ accountId, onTransactionChange }: T
       if (filters.startDate && transaction.date < filters.startDate) return false;
       if (filters.endDate && transaction.date > filters.endDate) return false;
 
+      // Type filter
+      if (filters.type && transaction.type !== filters.type) return false;
+
       // Category filter - transaction must have one of the selected categories
       if (filters.categoryIds.length > 0) {
         if (!filters.categoryIds.includes(transaction.category_id)) return false;
@@ -259,32 +279,48 @@ export default function TransactionManager({ accountId, onTransactionChange }: T
 
   return (
     <div className="flex flex-col h-full space-y-4">
-      <div className="flex items-center justify-between flex-shrink-0">
-        <div>
-          <h2 className="text-2xl font-bold tracking-tight">Transactions</h2>
-          <p className="text-muted-foreground">
-            Manage your income and expenses
-          </p>
+      {customTitle && (
+        <div className="flex items-center justify-between flex-shrink-0 border-b pb-4">
+          <h2 className="text-2xl font-bold tracking-tight">{customTitle}</h2>
+          {onClose && (
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={onClose}
+              title="Close"
+            >
+              <X className="h-5 w-5" />
+            </Button>
+          )}
         </div>
-        <div className="flex gap-2">
-          <AiTransactionInput
-            accountId={accountId}
-            categories={categories}
-            tags={tags}
-            onTransactionsCreated={async () => {
-              await loadTransactions();
-              if (onTransactionChange) {
-                onTransactionChange();
-              }
-            }}
-          />
-          <Dialog open={dialogOpen} onOpenChange={handleDialogClose}>
-            <DialogTrigger asChild>
-              <Button>
-                <Plus className="mr-2 h-4 w-4" />
-                Add Transaction
-              </Button>
-            </DialogTrigger>
+      )}
+      {showHeader && (
+        <div className="flex items-center justify-between flex-shrink-0">
+          <div>
+            <h2 className="text-2xl font-bold tracking-tight">Transactions</h2>
+            <p className="text-muted-foreground">
+              Manage your income and expenses
+            </p>
+          </div>
+          <div className="flex gap-2">
+            <AiTransactionInput
+              accountId={accountId}
+              categories={categories}
+              tags={tags}
+              onTransactionsCreated={async () => {
+                await loadTransactions();
+                if (onTransactionChange) {
+                  onTransactionChange();
+                }
+              }}
+            />
+            <Dialog open={dialogOpen} onOpenChange={handleDialogClose}>
+              <DialogTrigger asChild>
+                <Button>
+                  <Plus className="mr-2 h-4 w-4" />
+                  Add Transaction
+                </Button>
+              </DialogTrigger>
           <DialogContent className="sm:max-w-[500px]">
             <form onSubmit={handleSubmit}>
               <DialogHeader>
@@ -465,8 +501,9 @@ export default function TransactionManager({ accountId, onTransactionChange }: T
             </form>
           </DialogContent>
         </Dialog>
+          </div>
         </div>
-      </div>
+      )}
 
       <div className="flex-shrink-0 ">
         <TransactionFiltersComponent

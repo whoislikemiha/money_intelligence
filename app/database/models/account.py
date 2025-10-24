@@ -15,6 +15,7 @@ class Account(BaseDbModel):
 
     user = relationship("User", back_populates="accounts")
     transactions = relationship("Transaction", back_populates="account", cascade="all, delete-orphan")
+    reminders = relationship("Reminder", back_populates="account", cascade="all, delete-orphan")
 
     @property
     def current_balance(self):

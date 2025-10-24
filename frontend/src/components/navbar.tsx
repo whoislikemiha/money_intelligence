@@ -20,18 +20,41 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import {Wallet, Settings, DollarSign, LogOut, User, BrainCircuit, Sparkles} from 'lucide-react'
+import {Wallet, Settings, DollarSign, LogOut, User, BrainCircuit, Sparkles, Bell, PiggyBank} from 'lucide-react'
 import { Account } from '@/lib/types'
+import { useState, useEffect } from 'react'
+import { reminderApi } from '@/lib/api'
+import { Badge } from '@/components/ui/badge'
+import DueRemindersDialog from '@/components/DueRemindersDialog'
 
 interface NavbarProps {
   accounts?: Account[]
   selectedAccount?: Account | null
   onAccountChange?: (accountId: number) => void
+  balancesVisible?: boolean
 }
 
-export function Navbar({ accounts, selectedAccount, onAccountChange }: NavbarProps) {
+export function Navbar({ accounts, selectedAccount, onAccountChange, balancesVisible = true }: NavbarProps) {
   const router = useRouter()
   const { user, logout } = useAuth()
+  const [dueRemindersCount, setDueRemindersCount] = useState(0)
+  const [remindersDialogOpen, setRemindersDialogOpen] = useState(false)
+
+  useEffect(() => {
+    loadDueRemindersCount()
+    // Poll for due reminders every 5 minutes
+    const interval = setInterval(loadDueRemindersCount, 5 * 60 * 1000)
+    return () => clearInterval(interval)
+  }, [])
+
+  const loadDueRemindersCount = async () => {
+    try {
+      const dueReminders = await reminderApi.getDue()
+      setDueRemindersCount(dueReminders.length)
+    } catch (error) {
+      console.error('Failed to load due reminders count:', error)
+    }
+  }
 
   const getInitials = (name: string) => {
     return name
@@ -40,6 +63,13 @@ export function Navbar({ accounts, selectedAccount, onAccountChange }: NavbarPro
       .join('')
       .toUpperCase()
       .slice(0, 2)
+  }
+
+  const formatBalance = (amount: number, currency: string) => {
+    if (balancesVisible) {
+      return `${amount.toFixed(2)} ${currency}`;
+    }
+    return '••••••';
   }
 
   return (
@@ -71,6 +101,22 @@ export function Navbar({ accounts, selectedAccount, onAccountChange }: NavbarPro
               </Button>
               <Button
                 variant="ghost"
+                onClick={() => router.push('/dashboard/savings')}
+                className="gap-2"
+              >
+                <PiggyBank className="h-4 w-4" />
+                Savings
+              </Button>
+              <Button
+                variant="ghost"
+                onClick={() => router.push('/dashboard/reminders')}
+                className="gap-2"
+              >
+                <Bell className="h-4 w-4" />
+                Reminders
+              </Button>
+              <Button
+                variant="ghost"
                 onClick={() => router.push('/dashboard/assistant')}
                 className="gap-2"
               >
@@ -98,18 +144,36 @@ export function Navbar({ accounts, selectedAccount, onAccountChange }: NavbarPro
               >
                 <SelectTrigger className="w-[200px]">
                   <SelectValue>
-                    {selectedAccount.name} ({Number(selectedAccount.current_balance).toFixed(2)} {selectedAccount.currency})
+                    {selectedAccount.name} ({formatBalance(Number(selectedAccount.current_balance), selectedAccount.currency)})
                   </SelectValue>
                 </SelectTrigger>
                 <SelectContent>
                   {accounts.map(acc => (
                     <SelectItem key={acc.id} value={acc.id.toString()}>
-                      {acc.name} ({Number(acc.current_balance).toFixed(2)} {acc.currency})
+                      {acc.name} ({formatBalance(Number(acc.current_balance), acc.currency)})
                     </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
             )}
+
+            {/* Reminders Bell */}
+            <Button
+              variant="ghost"
+              size="icon"
+              className="relative"
+              onClick={() => setRemindersDialogOpen(true)}
+            >
+              <Bell className="h-5 w-5" />
+              {dueRemindersCount > 0 && (
+                <Badge
+                  variant="destructive"
+                  className="absolute -top-1 -right-1 h-5 w-5 p-0 flex items-center justify-center text-xs"
+                >
+                  {dueRemindersCount}
+                </Badge>
+              )}
+            </Button>
 
             <ThemeToggle />
 
@@ -143,6 +207,13 @@ export function Navbar({ accounts, selectedAccount, onAccountChange }: NavbarPro
           </div>
         </div>
       </div>
+
+      {/* Due Reminders Dialog */}
+      <DueRemindersDialog
+        open={remindersDialogOpen}
+        onOpenChange={setRemindersDialogOpen}
+        onReminderProcessed={loadDueRemindersCount}
+      />
     </nav>
   )
 }

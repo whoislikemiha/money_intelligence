@@ -13,6 +13,7 @@ class Tag(BaseDbModel):
 
     user = relationship("User", back_populates="tags")
     transactions = relationship("Transaction", secondary="transaction_tags", back_populates="tags")
+    reminders = relationship("Reminder", secondary="reminder_tags", back_populates="tags")
 
     __table_args__ = (
         UniqueConstraint('user_id', 'name', name='_user_tag_uc'),
@@ -27,4 +28,11 @@ class TransactionTag(Base):
     __tablename__ = 'transaction_tags'
 
     transaction_id = Column(Integer, ForeignKey('transactions.id'), primary_key=True)
+    tag_id = Column(Integer, ForeignKey('tags.id'), primary_key=True)
+
+
+class ReminderTag(Base):
+    __tablename__ = 'reminder_tags'
+
+    reminder_id = Column(Integer, ForeignKey('reminders.id'), primary_key=True)
     tag_id = Column(Integer, ForeignKey('tags.id'), primary_key=True)

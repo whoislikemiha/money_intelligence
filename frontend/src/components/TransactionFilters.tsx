@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from 'react';
-import { Category, Tag } from '@/lib/types';
+import { Category, Tag, TransactionType } from '@/lib/types';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
@@ -20,6 +20,7 @@ export interface TransactionFilters {
   endDate: string;
   categoryIds: number[];
   tagIds: number[];
+  type?: TransactionType;
 }
 
 interface TransactionFiltersProps {

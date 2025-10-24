@@ -15,6 +15,7 @@ class Category(BaseDbModel):
     user = relationship("User", back_populates="categories")
     transactions = relationship("Transaction", back_populates="category")
     budgets = relationship("Budget", back_populates="category", cascade="all, delete-orphan")
+    reminders = relationship("Reminder", back_populates="category")
 
     __table_args__ = (
         UniqueConstraint('user_id', 'name', name='_user_category_uc'),

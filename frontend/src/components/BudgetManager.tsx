@@ -32,7 +32,12 @@ interface BudgetWithSpending extends Budget {
   percentage: number;
 }
 
-export default function BudgetManager() {
+interface BudgetManagerProps {
+  selectedCategoryId?: number | null;
+  onBudgetClick?: (categoryId: number) => void;
+}
+
+export default function BudgetManager({ selectedCategoryId, onBudgetClick }: BudgetManagerProps = {}) {
   const { user } = useAuth();
   const [budgets, setBudgets] = useState<BudgetWithSpending[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
@@ -165,8 +170,8 @@ export default function BudgetManager() {
   };
 
   return (
-    <div className="flex flex-col h-full">
-      <div className="flex items-center justify-between pb-4">
+    <div className="flex flex-col">
+      <div className="flex items-center justify-between">
         <div>
           <h2 className="text-2xl font-bold tracking-tight">Budgets</h2>
           <p className="text-muted-foreground">
@@ -250,7 +255,7 @@ export default function BudgetManager() {
         </Dialog>
       </div>
 
-      <div className="flex-1 overflow-y-auto pr-2 scrollbar-thin scrollbar-thumb-gray-300 dark:scrollbar-thumb-gray-700 scrollbar-track-transparent dark:scrollbar-track-transparent hover:scrollbar-thumb-gray-400 dark:hover:scrollbar-thumb-gray-600">
+      <div>
         {loading ? (
           <div className="flex items-center justify-center py-8">
             <div className="text-muted-foreground">Loading budgets...</div>
@@ -264,18 +269,22 @@ export default function BudgetManager() {
             </Button>
           </div>
         ) : (
-          <div className="space-y-3">
+          <div className="flex gap-4 overflow-x-auto pb-2 p-2">
             {budgets.map((budget) => {
               const category = categories.find(c => c.id === budget.category_id);
               const budgetAmount = Number(budget.amount);
               const isOverBudget = budget.percentage >= 100;
               const isWarning = budget.percentage >= 80 && budget.percentage < 100;
+              const isSelected = selectedCategoryId === budget.category_id;
 
               return (
                 <div
                   key={budget.id}
-                  className="border rounded-lg p-4 space-y-3 border-l-4"
+                  className={`border rounded-lg p-4 space-y-3 border-l-4 min-w-[320px] transition-all ${
+                    onBudgetClick ? 'cursor-pointer hover:shadow-md hover:scale-[1.02]' : ''
+                  } ${isSelected ? 'ring-2 ring-green-800 shadow-lg' : ''}`}
                   style={{ borderLeftColor: category?.color }}
+                  onClick={() => onBudgetClick?.(budget.category_id)}
                 >
                   <div className="flex items-start justify-between">
                     <div>
@@ -290,7 +299,10 @@ export default function BudgetManager() {
                       <Button
                         variant="ghost"
                         size="icon"
-                        onClick={() => handleEdit(budget)}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleEdit(budget);
+                        }}
                         className="h-8 w-8"
                       >
                         <Pencil className="h-4 w-4" />
@@ -298,7 +310,10 @@ export default function BudgetManager() {
                       <Button
                         variant="ghost"
                         size="icon"
-                        onClick={() => handleDelete(budget.id)}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleDelete(budget.id);
+                        }}
                         className="h-8 w-8"
                       >
                         <Trash2 className="h-4 w-4" />

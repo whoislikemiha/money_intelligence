@@ -66,7 +66,7 @@ export class ApiClient {
 
 export const apiClient = new ApiClient();
 
-import { Account, AccountCreate, AccountUpdate, MonthlyStats, Transaction, TransactionCreate, TransactionUpdate, Category, CategoryCreate, CategoryUpdate, Budget, BudgetCreate, BudgetUpdate, Tag, TagCreate, TagUpdate, AgentProcessRequest, AgentProcessResponse } from './types';
+import { Account, AccountCreate, AccountUpdate, MonthlyStats, Transaction, TransactionCreate, TransactionUpdate, Category, CategoryCreate, CategoryUpdate, Budget, BudgetCreate, BudgetUpdate, Tag, TagCreate, TagUpdate, Reminder, ReminderCreate, ReminderUpdate, SavingsGoal, SavingsGoalCreate, SavingsGoalUpdate, SavingsTransaction, SavingsTransactionCreate, AgentProcessRequest, AgentProcessResponse } from './types';
 
 // Account API functions
 export const accountApi = {
@@ -166,6 +166,55 @@ export const tagApi = {
 
   delete: (id: number): Promise<void> =>
     apiClient.delete(`/tag/${id}`),
+};
+
+// Reminder API functions
+export const reminderApi = {
+  getAll: (): Promise<Reminder[]> =>
+    apiClient.get('/reminder/'),
+
+  getDue: (): Promise<Reminder[]> =>
+    apiClient.get('/reminder/due'),
+
+  create: (data: ReminderCreate): Promise<Reminder> =>
+    apiClient.post('/reminder/', data),
+
+  update: (id: number, data: ReminderUpdate): Promise<Reminder> =>
+    apiClient.put(`/reminder/${id}`, data),
+
+  delete: (id: number): Promise<void> =>
+    apiClient.delete(`/reminder/${id}`),
+};
+
+// Savings Goal API functions
+export const savingsGoalApi = {
+  getAll: (): Promise<SavingsGoal[]> =>
+    apiClient.get('/savings-goal/'),
+
+  getAllWithAmounts: (): Promise<SavingsGoal[]> =>
+    apiClient.get('/savings-goal/with-amounts'),
+
+  getById: (id: number): Promise<SavingsGoal> =>
+    apiClient.get(`/savings-goal/${id}`),
+
+  create: (data: SavingsGoalCreate): Promise<SavingsGoal> =>
+    apiClient.post('/savings-goal/', data),
+
+  update: (id: number, data: SavingsGoalUpdate): Promise<SavingsGoal> =>
+    apiClient.put(`/savings-goal/${id}`, data),
+
+  delete: (id: number): Promise<void> =>
+    apiClient.delete(`/savings-goal/${id}`),
+
+  // Transaction operations
+  getTransactions: (goalId: number): Promise<SavingsTransaction[]> =>
+    apiClient.get(`/savings-goal/${goalId}/transactions`),
+
+  createTransaction: (goalId: number, data: SavingsTransactionCreate): Promise<SavingsTransaction> =>
+    apiClient.post(`/savings-goal/${goalId}/transactions`, data),
+
+  deleteTransaction: (goalId: number, transactionId: number): Promise<void> =>
+    apiClient.delete(`/savings-goal/${goalId}/transactions/${transactionId}`),
 };
 
 // Agent API functions

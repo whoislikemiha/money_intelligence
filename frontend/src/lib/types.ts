@@ -137,6 +137,103 @@ export interface TagUpdate {
   color?: string;
 }
 
+// Reminder types
+export enum ReminderRecurrence {
+  NONE = "none",
+  DAILY = "daily",
+  WEEKLY = "weekly",
+  MONTHLY = "monthly",
+  YEARLY = "yearly"
+}
+
+export interface Reminder {
+  id: number;
+  user_id: number;
+  account_id: number;
+  category_id?: number;
+  name: string;
+  description?: string;
+  type: TransactionType;
+  amount: number;
+  reminder_date: string;
+  recurrence: ReminderRecurrence;
+  is_completed: boolean;
+  transaction_id?: number;
+  created_at: string;
+  updated_at?: string;
+  tags?: Tag[];
+}
+
+export interface ReminderCreate {
+  account_id: number;
+  category_id?: number;
+  name: string;
+  description?: string;
+  type: TransactionType;
+  amount: number;
+  reminder_date: string;
+  recurrence?: ReminderRecurrence;
+  user_id: number;
+  tags?: number[];
+}
+
+export interface ReminderUpdate {
+  account_id?: number;
+  category_id?: number;
+  name?: string;
+  description?: string;
+  type?: TransactionType;
+  amount?: number;
+  reminder_date?: string;
+  recurrence?: ReminderRecurrence;
+  is_completed?: boolean;
+  transaction_id?: number;
+  tags?: number[];
+}
+
+// Savings Goal types
+export interface SavingsGoal {
+  id: number;
+  user_id: number;
+  name: string;
+  target_amount?: number;
+  color: string;
+  notes?: string;
+  created_at: string;
+  updated_at?: string;
+  current_amount?: number;
+}
+
+export interface SavingsGoalCreate {
+  name: string;
+  target_amount?: number;
+  color?: string;
+  notes?: string;
+  user_id: number;
+}
+
+export interface SavingsGoalUpdate {
+  name?: string;
+  target_amount?: number;
+  color?: string;
+  notes?: string;
+}
+
+export interface SavingsTransaction {
+  id: number;
+  savings_goal_id: number;
+  amount: number;
+  description?: string;
+  created_at: string;
+  updated_at?: string;
+}
+
+export interface SavingsTransactionCreate {
+  savings_goal_id: number;
+  amount: number;
+  description?: string;
+}
+
 // Agent types
 export interface TransactionPreview {
   amount: number;
