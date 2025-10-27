@@ -239,7 +239,7 @@ export const agentApi = {
 
     // Create EventSource with POST data via URL params (workaround for EventSource POST limitation)
     // Or use fetch with streaming
-    let controller = new AbortController();
+    const controller = new AbortController();
 
     const streamWithFetch = async () => {
       try {
@@ -347,7 +347,7 @@ export const assistantApi = {
     const token = localStorage.getItem('token');
     const url = `${API_BASE_URL}/assistant/chat-stream`;
 
-    let controller = new AbortController();
+    const controller = new AbortController();
 
     const streamWithFetch = async () => {
       try {

@@ -131,7 +131,7 @@ export default function DueRemindersDialog({
       if (processingReminder.recurrence !== ReminderRecurrence.NONE) {
         // Calculate next reminder date based on recurrence
         const currentDate = new Date(processingReminder.reminder_date);
-        let nextDate = new Date(currentDate);
+        const nextDate = new Date(currentDate);
 
         switch (processingReminder.recurrence) {
           case ReminderRecurrence.DAILY:
@@ -189,7 +189,7 @@ export default function DueRemindersDialog({
       // Handle recurrence
       if (reminder.recurrence !== ReminderRecurrence.NONE) {
         const currentDate = new Date(reminder.reminder_date);
-        let nextDate = new Date(currentDate);
+        const nextDate = new Date(currentDate);
 
         switch (reminder.recurrence) {
           case ReminderRecurrence.DAILY:

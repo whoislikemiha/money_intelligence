@@ -6,7 +6,7 @@ class Settings(BaseSettings):
     VERSION: str = "0.0.1"
     API_V1_STR: str = "/api"
 
-    DATABASE_URL: str = "sqlite+pysqlite:///./app/database/sqlite.db"
+    DATABASE_URL: str = "sqlite+pysqlite:///./data/money_intelligence.db"
     DATABASE_ECHO: bool = True
 
     SECRET_KEY: str

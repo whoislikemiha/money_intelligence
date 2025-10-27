@@ -326,7 +326,7 @@ export default function BudgetManager({ selectedCategoryId, onBudgetClick }: Bud
                       <div className="flex items-center gap-2">
                         <TrendingDown className="h-4 w-4 text-muted-foreground" />
                         <span className="text-muted-foreground">
-                          {budget.spent.toFixed(2)} of {budgetAmount.toFixed(2)} {user?.currency}
+                          {budget.spent.toFixed(2)} of {budgetAmount.toFixed(2)}
                         </span>
                       </div>
                       <span className={`font-semibold ${
@@ -351,7 +351,7 @@ export default function BudgetManager({ selectedCategoryId, onBudgetClick }: Bud
                       <span className={`${
                         budget.remaining >= 0 ? 'text-foreground' : 'text-red-600 dark:text-red-400'
                       }`}>
-                        {budget.remaining >= 0 ? 'Remaining' : 'Over budget'}: {Math.abs(budget.remaining).toFixed(2)} {user?.currency}
+                        {budget.remaining >= 0 ? 'Remaining' : 'Over budget'}: {Math.abs(budget.remaining).toFixed(2)} 
                       </span>
                     </div>
                   </div>

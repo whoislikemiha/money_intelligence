@@ -3,8 +3,8 @@
 import {useAuth} from '@/contexts/AuthContext';
 import {useRouter} from 'next/navigation';
 import {useEffect, useState} from 'react';
-import {accountApi, categoryApi, Account, MonthlyStats} from '@/lib/api';
-import {TransactionType, Category} from '@/lib/types';
+import {accountApi, categoryApi} from '@/lib/api';
+import {TransactionType, Category, Account, MonthlyStats} from '@/lib/types';
 import TransactionManager from '@/components/TransactionManager';
 import BudgetManager from '@/components/BudgetManager';
 import TransactionActions from '@/components/TransactionActions';

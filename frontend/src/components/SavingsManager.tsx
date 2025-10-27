@@ -206,7 +206,7 @@ export default function SavingsManager() {
               <p className="text-sm">Total Balance</p>
             </div>
             <p className="text-3xl font-bold">
-              {getTotalBalance().toFixed(2)} {user?.currency}
+              {getTotalBalance().toFixed(2)} 
             </p>
           </div>
           <div className="p-6 flex-1">
@@ -215,7 +215,7 @@ export default function SavingsManager() {
               <p className="text-sm">Allocated to Savings</p>
             </div>
             <p className="text-3xl font-bold text-blue-600 dark:text-blue-400">
-              {getTotalSaved().toFixed(2)} {user?.currency}
+              {getTotalSaved().toFixed(2)} 
             </p>
           </div>
           <div className="p-6 flex-1">
@@ -224,7 +224,7 @@ export default function SavingsManager() {
               <p className="text-sm">Available to Allocate</p>
             </div>
             <p className="text-3xl font-bold text-green-600 dark:text-green-400">
-              {getAvailableBalance().toFixed(2)} {user?.currency}
+              {getAvailableBalance().toFixed(2)}
             </p>
           </div>
         </div>
@@ -418,8 +418,8 @@ export default function SavingsManager() {
                       <div className="flex items-center gap-2">
                         <PiggyBank className="h-4 w-4 text-muted-foreground" />
                         <span className="text-muted-foreground">
-                          {currentAmount.toFixed(2)} {user?.currency}
-                          {hasTarget && ` of ${targetAmount.toFixed(2)} ${user?.currency}`}
+                          {currentAmount.toFixed(2)}
+                          {hasTarget && ` of ${targetAmount.toFixed(2)}`}
                         </span>
                       </div>
                       {hasTarget && (
@@ -434,7 +434,7 @@ export default function SavingsManager() {
                         value={Math.min(percentage, 100)}
                         className="h-2"
                         style={{
-                          // @ts-ignore
+                          // @ts-expect-error - CSS custom property
                           '--progress-background': goal.color
                         }}
                       />

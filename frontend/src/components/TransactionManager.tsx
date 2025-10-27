@@ -603,7 +603,7 @@ export default function TransactionManager({
                       <TableCell className={`text-right font-semibold ${
                         isIncome ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'
                       }`}>
-                        {isIncome ? '+' : '-'}{Number(transaction.amount).toFixed(2)} {user?.currency}
+                        {isIncome ? '+' : '-'}{Number(transaction.amount).toFixed(2)} 
                       </TableCell>
                       <TableCell className="text-right">
                         <div className="flex items-center justify-end gap-2">

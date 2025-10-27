@@ -3,7 +3,8 @@
 import { useAuth } from '@/contexts/AuthContext';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
-import { accountApi, Account } from '@/lib/api';
+import { accountApi } from '@/lib/api';
+import { Account } from '@/lib/types';
 import ReminderManager from '@/components/ReminderManager';
 import { Navbar } from '@/components/navbar';
 
