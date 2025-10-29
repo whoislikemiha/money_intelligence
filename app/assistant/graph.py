@@ -41,7 +41,7 @@ def create_assistant_graph(db: Session, user_id: int, account_id: int, user_cont
 
     # Initialize LLM with tools
     llm = ChatAnthropic(
-        model="claude-3-5-sonnet-20241022",  # Using Sonnet for better reasoning
+        model="claude-3-5-sonnet",  # Using Sonnet for better reasoning
         temperature=0,
         max_tokens=4096,
         api_key=settings.ANTHROPIC_API_KEY

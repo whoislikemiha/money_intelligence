@@ -78,6 +78,8 @@ jobs:
           host: ${{ secrets.DROPLET_IP }}
           username: ${{ secrets.DROPLET_USER }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
+          port: 22
+          script_stop: true
           script: |
             cd /app/money_intelligence
 
