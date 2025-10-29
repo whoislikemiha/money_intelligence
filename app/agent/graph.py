@@ -23,7 +23,7 @@ def create_agent_graph():
 
     # Initialize LLM with tools
     llm = ChatAnthropic(
-        model="claude-3-5-haiku-20241022",
+        model="claude-haiku-4-5-20251001",
         temperature=0,
         max_tokens=4096,  # Increased from default 1024 to handle many transactions
         api_key=settings.ANTHROPIC_API_KEY

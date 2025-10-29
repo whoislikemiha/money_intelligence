@@ -40,7 +40,7 @@ def create_advice_tools(db: Session, user_id: int, user_context: dict):
 
         # Use LLM for advice generation
         llm = ChatAnthropic(
-            model="claude-3-5-sonnet",
+            model="claude-haiku-4-5-20251001",
             temperature=0.3,  # Slight creativity for advice
             max_tokens=1024,
             api_key=settings.ANTHROPIC_API_KEY
