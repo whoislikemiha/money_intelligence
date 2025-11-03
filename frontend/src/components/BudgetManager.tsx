@@ -23,7 +23,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { Plus, Trash2, Pencil, TrendingDown } from 'lucide-react';
+import { Plus, Trash2, Pencil, TrendingDown, ChevronDown, ChevronUp } from 'lucide-react';
 import { Progress } from '@/components/ui/progress';
 
 interface BudgetWithSpending extends Budget {
@@ -44,6 +44,7 @@ export default function BudgetManager({ selectedCategoryId, onBudgetClick }: Bud
   const [loading, setLoading] = useState(false);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingBudget, setEditingBudget] = useState<Budget | null>(null);
+  const [isFolded, setIsFolded] = useState(false);
   const [formData, setFormData] = useState({
     category_id: '',
     amount: '',
@@ -171,88 +172,100 @@ export default function BudgetManager({ selectedCategoryId, onBudgetClick }: Bud
 
   return (
     <div className="flex flex-col">
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-start gap-4">
         <div>
-          <h2 className="text-2xl font-bold tracking-tight">Budgets</h2>
+          <h2 className="text-xl font-bold tracking-tight">Budgets</h2>
           <p className="text-muted-foreground">
             Tracking for {getCurrentMonthName()}
           </p>
         </div>
-        <Dialog open={dialogOpen} onOpenChange={handleDialogClose}>
-          <DialogTrigger asChild>
-            <Button>
-              <Plus className="mr-2 h-4 w-4" />
-              Add Budget
+        <div className="flex gap-2 rounded-full">
+          {budgets.length > 0 && (
+            <Button
+              variant="secondary"
+              size="icon"
+              onClick={() => setIsFolded(!isFolded)}
+              title={isFolded ? 'Expand budgets' : 'Collapse budgets'}
+            >
+              {isFolded ? <ChevronDown className="h-4 w-4" /> : <ChevronUp className="h-4 w-4" />}
             </Button>
-          </DialogTrigger>
-          <DialogContent className="sm:max-w-[500px]">
-            <form onSubmit={handleSubmit}>
-              <DialogHeader>
-                <DialogTitle>{editingBudget ? 'Edit Budget' : 'Add Budget'}</DialogTitle>
-                <DialogDescription>
-                  {editingBudget ? 'Update your budget details' : 'Create a new monthly budget for a category'}
-                </DialogDescription>
-              </DialogHeader>
-              <div className="space-y-4 py-4">
-                <div className="space-y-2">
-                  <Label htmlFor="category">Category</Label>
-                  <Select
-                    value={formData.category_id}
-                    onValueChange={(value) => setFormData({ ...formData, category_id: value })}
-                    disabled={!!editingBudget}
-                  >
-                    <SelectTrigger id="category">
-                      <SelectValue placeholder="Select a category" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {categories
-                        .filter(category => {
-                          // When editing, allow the current category
-                          if (editingBudget && category.id === editingBudget.category_id) {
-                            return true;
-                          }
-                          // Filter out categories that already have budgets
-                          return !budgets.some(budget => budget.category_id === category.id);
-                        })
-                        .map((category) => (
-                          <SelectItem key={category.id} value={category.id.toString()}>
-                            {category.icon} {category.name}
-                          </SelectItem>
-                        ))}
-                    </SelectContent>
-                  </Select>
-                </div>
+          )}
+          <Dialog open={dialogOpen} onOpenChange={handleDialogClose}>
+            <DialogTrigger asChild>
+              <Button>
+                <Plus className="mr-2 h-4 w-4" />
+                Add Budget
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="sm:max-w-[500px]">
+              <form onSubmit={handleSubmit}>
+                <DialogHeader>
+                  <DialogTitle>{editingBudget ? 'Edit Budget' : 'Add Budget'}</DialogTitle>
+                  <DialogDescription>
+                    {editingBudget ? 'Update your budget details' : 'Create a new monthly budget for a category'}
+                  </DialogDescription>
+                </DialogHeader>
+                <div className="space-y-4 py-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="category">Category</Label>
+                    <Select
+                      value={formData.category_id}
+                      onValueChange={(value) => setFormData({ ...formData, category_id: value })}
+                      disabled={!!editingBudget}
+                    >
+                      <SelectTrigger id="category">
+                        <SelectValue placeholder="Select a category" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {categories
+                          .filter(category => {
+                            // When editing, allow the current category
+                            if (editingBudget && category.id === editingBudget.category_id) {
+                              return true;
+                            }
+                            // Filter out categories that already have budgets
+                            return !budgets.some(budget => budget.category_id === category.id);
+                          })
+                          .map((category) => (
+                            <SelectItem key={category.id} value={category.id.toString()}>
+                              {category.icon} {category.name}
+                            </SelectItem>
+                          ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
 
-                <div className="space-y-2">
-                  <Label htmlFor="amount">Amount</Label>
-                  <Input
-                    id="amount"
-                    type="number"
-                    step="0.01"
-                    value={formData.amount}
-                    onChange={(e) => setFormData({ ...formData, amount: e.target.value })}
-                    placeholder="0.00"
-                    required
-                  />
-                </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="amount">Amount</Label>
+                    <Input
+                      id="amount"
+                      type="number"
+                      step="0.01"
+                      value={formData.amount}
+                      onChange={(e) => setFormData({ ...formData, amount: e.target.value })}
+                      placeholder="0.00"
+                      required
+                    />
+                  </div>
 
-                <div className="space-y-2">
-                  <Label htmlFor="notes">Notes (Optional)</Label>
-                  <Input
-                    id="notes"
-                    type="text"
-                    value={formData.notes}
-                    onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
-                    placeholder="Add a note..."
-                  />
+                  <div className="space-y-2">
+                    <Label htmlFor="notes">Notes (Optional)</Label>
+                    <Input
+                      id="notes"
+                      type="text"
+                      value={formData.notes}
+                      onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
+                      placeholder="Add a note..."
+                    />
+                  </div>
                 </div>
-              </div>
-              <DialogFooter>
-                <Button type="submit">{editingBudget ? 'Update Budget' : 'Create Budget'}</Button>
-              </DialogFooter>
-            </form>
-          </DialogContent>
-        </Dialog>
+                <DialogFooter>
+                  <Button type="submit">{editingBudget ? 'Update Budget' : 'Create Budget'}</Button>
+                </DialogFooter>
+              </form>
+            </DialogContent>
+          </Dialog>
+        </div>
       </div>
 
       <div>
@@ -268,6 +281,47 @@ export default function BudgetManager({ selectedCategoryId, onBudgetClick }: Bud
               Add your first budget
             </Button>
           </div>
+        ) : isFolded ? (
+          <div className="flex gap-3 overflow-x-auto pb-2 p-2 flex-wrap">
+            {budgets.map((budget) => {
+              const category = categories.find(c => c.id === budget.category_id);
+              const isOverBudget = budget.percentage >= 100;
+              const isWarning = budget.percentage >= 80 && budget.percentage < 100;
+              const isSelected = selectedCategoryId === budget.category_id;
+
+              return (
+                <div
+                  key={budget.id}
+                  className={`flex items-center gap-2 border rounded-full px-3 py-2 transition-all border-l-4 ${onBudgetClick ? 'cursor-pointer hover:shadow-md hover:scale-105' : ''
+                    } ${isSelected ? 'ring-2 ring-green-800 shadow-lg' : ''}`}
+                  style={{ borderLeftColor: category?.color }}
+                  onClick={() => onBudgetClick?.(budget.category_id)}
+                  title={`${category?.name}: ${budget.spent.toFixed(2)} / ${Number(budget.amount).toFixed(2)} (${budget.percentage.toFixed(0)}%)`}
+                >
+                  <div
+                    className="flex items-center justify-center w-8 h-8 rounded-full text-lg"
+                    style={{
+                      backgroundColor: category?.color ? `${category.color}20` : '#f3f4f6',
+                      color: category?.color
+                    }}
+                  >
+                    {category?.icon}
+                  </div>
+                  <span className="font-medium text-sm whitespace-nowrap">
+                    {category?.name || 'Unknown'}
+                  </span>
+                  <div className="flex items-center gap-1">
+                    <div
+                      className={`w-2 h-2 rounded-full ${isOverBudget ? 'bg-red-500' :
+                        isWarning ? 'bg-yellow-500' :
+                          'bg-green-500'
+                        }`}
+                    />
+                  </div>
+                </div>
+              );
+            })}
+          </div>
         ) : (
           <div className="flex gap-4 overflow-x-auto pb-2 p-2">
             {budgets.map((budget) => {
@@ -280,9 +334,8 @@ export default function BudgetManager({ selectedCategoryId, onBudgetClick }: Bud
               return (
                 <div
                   key={budget.id}
-                  className={`border rounded-lg p-4 space-y-3 border-l-4 min-w-[320px] transition-all ${
-                    onBudgetClick ? 'cursor-pointer hover:shadow-md hover:scale-[1.02]' : ''
-                  } ${isSelected ? 'ring-2 ring-green-800 shadow-lg' : ''}`}
+                  className={`border rounded-lg p-4 space-y-3 border-l-4 min-w-[320px] transition-all ${onBudgetClick ? 'cursor-pointer hover:shadow-md hover:scale-[1.02]' : ''
+                    } ${isSelected ? 'ring-2 ring-green-800 shadow-lg' : ''}`}
                   style={{ borderLeftColor: category?.color }}
                   onClick={() => onBudgetClick?.(budget.category_id)}
                 >
@@ -329,29 +382,26 @@ export default function BudgetManager({ selectedCategoryId, onBudgetClick }: Bud
                           {budget.spent.toFixed(2)} of {budgetAmount.toFixed(2)}
                         </span>
                       </div>
-                      <span className={`font-semibold ${
-                        isOverBudget ? 'text-red-600 dark:text-red-400' :
+                      <span className={`font-semibold ${isOverBudget ? 'text-red-600 dark:text-red-400' :
                         isWarning ? 'text-yellow-600 dark:text-yellow-400' :
-                        'text-green-600 dark:text-green-400'
-                      }`}>
+                          'text-green-600 dark:text-green-400'
+                        }`}>
                         {budget.percentage.toFixed(0)}%
                       </span>
                     </div>
 
                     <Progress
                       value={Math.min(budget.percentage, 100)}
-                      className={`h-2 ${
-                        isOverBudget ? '[&>div]:bg-red-500' :
+                      className={`h-2 ${isOverBudget ? '[&>div]:bg-red-500' :
                         isWarning ? '[&>div]:bg-yellow-500' :
-                        '[&>div]:bg-green-500'
-                      }`}
+                          '[&>div]:bg-green-500'
+                        }`}
                     />
 
                     <div className="flex items-center justify-end text-sm">
-                      <span className={`${
-                        budget.remaining >= 0 ? 'text-foreground' : 'text-red-600 dark:text-red-400'
-                      }`}>
-                        {budget.remaining >= 0 ? 'Remaining' : 'Over budget'}: {Math.abs(budget.remaining).toFixed(2)} 
+                      <span className={`${budget.remaining >= 0 ? 'text-foreground' : 'text-red-600 dark:text-red-400'
+                        }`}>
+                        {budget.remaining >= 0 ? 'Remaining' : 'Over budget'}: {Math.abs(budget.remaining).toFixed(2)}
                       </span>
                     </div>
                   </div>

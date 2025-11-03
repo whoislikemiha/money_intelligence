@@ -97,6 +97,7 @@ Remember: Always use tools to get real data rather than making assumptions. If a
 """
 
 
+# partial user context tools for ai, instead of json use yaml/csv/plain text to save tokens while providing same data
 def load_user_context(db: Session, user_id: int, account_id: int) -> UserContext:
     """
     Load all user context needed for the assistant.
@@ -175,10 +176,10 @@ def load_user_context(db: Session, user_id: int, account_id: int) -> UserContext
 
 
 async def chat_stream(
-    message: str,
-    user_id: int,
-    account_id: int,
-    db: Session
+        message: str,
+        user_id: int,
+        account_id: int,
+        db: Session
 ) -> AsyncGenerator[Dict[str, Any], None]:
     """
     Stream chat responses with tool execution updates.
@@ -244,6 +245,17 @@ async def chat_stream(
         "pending_confirmations": []
     }
 
+    # Console log: Initial request to LLM
+    print("\n" + "="*80)
+    print("🚀 INITIAL REQUEST TO LLM")
+    print("="*80)
+    print(f"Messages being sent:")
+    for msg in initial_state["messages"]:
+        print(f"  Role: {msg['role']}")
+        print(f"  Content: {msg['content'][:200]}..." if len(msg['content']) > 200 else f"  Content: {msg['content']}")
+        print()
+    print("="*80 + "\n")
+
     # Yield thinking event
     yield {"type": "thinking"}
 
@@ -255,10 +267,22 @@ async def chat_stream(
         async for event in graph_iterator:
             event_type = event["event"]
 
+            # Console log: Raw event received
+            print(f"\n📥 EVENT RECEIVED: {event_type}")
+            print(f"   Raw event keys: {list(event.keys())}")
+            print(f"   Event data: {event.get('data', {})}")
+            print()
+
             # Tool execution started
             if event_type == "on_tool_start":
                 tool_name = event.get("name", "")
                 tool_input = event.get("data", {}).get("input", {})
+
+                # Console log: Tool call
+                print("\n" + "🔧 "*40)
+                print(f"TOOL CALL STARTED: {tool_name}")
+                print(f"Tool input: {json.dumps(tool_input, indent=2, default=str)}")
+                print("🔧 "*40 + "\n")
 
                 # Ensure tool_input is JSON serializable
                 serializable_input = serialize_tool_input(tool_input)
@@ -288,6 +312,12 @@ async def chat_stream(
                     output_str = output.content
                 else:
                     output_str = str(output) if output else ""
+
+                # Console log: Tool response
+                print("\n" + "✅ "*40)
+                print(f"TOOL CALL COMPLETED: {tool_name}")
+                print(f"Tool output (first 500 chars): {output_str[:500]}...")
+                print("✅ "*40 + "\n")
 
                 # Check if this is a special event response (structured JSON with marker)
                 special_event_handled = False
@@ -336,7 +366,17 @@ async def chat_stream(
             # LLM chunk (streaming response)
             elif event_type == "on_chat_model_stream":
                 chunk = event.get("data", {}).get("chunk", {})
+
+                # Console log: Stream chunk details
+                print(f"💬 STREAM CHUNK:")
+                print(f"   Chunk type: {type(chunk)}")
+                print(f"   Chunk attributes: {dir(chunk) if hasattr(chunk, '__dir__') else 'N/A'}")
+                print(f"   Chunk content: {chunk}")
+
                 content_str = extract_content_from_chunk(chunk)
+
+                print(f"   Extracted content: {repr(content_str)}")
+                print()
 
                 # Only yield if there's actual content
                 if content_str:
@@ -348,6 +388,11 @@ async def chat_stream(
 
             # LLM response complete
             elif event_type == "on_chat_model_end":
+                # Console log: LLM response finished
+                print("\n" + "🏁 "*40)
+                print("LLM RESPONSE COMPLETED")
+                print("🏁 "*40 + "\n")
+
                 # Send final marker to signal completion
                 # Don't send content here as it was already streamed via on_chat_model_stream
                 yield {
@@ -427,10 +472,10 @@ async def chat_stream(
 
 
 def chat(
-    message: str,
-    user_id: int,
-    account_id: int,
-    db: Session
+        message: str,
+        user_id: int,
+        account_id: int,
+        db: Session
 ) -> str:
     """
     Non-streaming chat (for testing or simple use cases).

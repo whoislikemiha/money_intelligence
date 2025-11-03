@@ -314,196 +314,195 @@ export default function TransactionManager({
                 }
               }}
             />
-            <Dialog open={dialogOpen} onOpenChange={handleDialogClose}>
-              <DialogTrigger asChild>
-                <Button>
-                  <Plus className="mr-2 h-4 w-4" />
-                  Add Transaction
-                </Button>
-              </DialogTrigger>
-          <DialogContent className="sm:max-w-[500px]">
-            <form onSubmit={handleSubmit}>
-              <DialogHeader>
-                <DialogTitle>{editingTransaction ? 'Edit Transaction' : 'Add Transaction'}</DialogTitle>
-                <DialogDescription>
-                  {editingTransaction ? 'Update your transaction details' : 'Create a new income or expense transaction'}
-                </DialogDescription>
-              </DialogHeader>
-              <div className="space-y-4 py-4">
+            <Button onClick={() => setDialogOpen(true)}>
+              <Plus className="mr-2 h-4 w-4" />
+              Add Transaction
+            </Button>
+          </div>
+        </div>
+      )}
+
+      <Dialog open={dialogOpen} onOpenChange={handleDialogClose}>
+        <DialogContent className="sm:max-w-[500px]">
+          <form onSubmit={handleSubmit}>
+            <DialogHeader>
+              <DialogTitle>{editingTransaction ? 'Edit Transaction' : 'Add Transaction'}</DialogTitle>
+              <DialogDescription>
+                {editingTransaction ? 'Update your transaction details' : 'Create a new income or expense transaction'}
+              </DialogDescription>
+            </DialogHeader>
+            <div className="space-y-4 py-4">
+              <div className="space-y-2">
+                <Label htmlFor="type">Type</Label>
+                <Select
+                  value={formData.type}
+                  onValueChange={(value) => setFormData({ ...formData, type: value as TransactionType })}
+                >
+                  <SelectTrigger id="type">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value={TransactionType.EXPENSE}>
+                      <div className="flex items-center gap-2">
+                        <TrendingDown className="h-4 w-4" />
+                        Expense
+                      </div>
+                    </SelectItem>
+                    <SelectItem value={TransactionType.INCOME}>
+                      <div className="flex items-center gap-2">
+                        <TrendingUp className="h-4 w-4" />
+                        Income
+                      </div>
+                    </SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="amount">Amount</Label>
+                <Input
+                  id="amount"
+                  type="number"
+                  step="0.01"
+                  value={formData.amount}
+                  onChange={(e) => setFormData({ ...formData, amount: e.target.value })}
+                  placeholder="0.00"
+                  required
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label htmlFor="type">Type</Label>
+                  <Label htmlFor="category">Category</Label>
                   <Select
-                    value={formData.type}
-                    onValueChange={(value) => setFormData({ ...formData, type: value as TransactionType })}
+                    value={formData.category_id}
+                    onValueChange={(value) => setFormData({ ...formData, category_id: value })}
                   >
-                    <SelectTrigger id="type">
-                      <SelectValue />
+                    <SelectTrigger id="category">
+                      <SelectValue placeholder="Select a category" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value={TransactionType.EXPENSE}>
-                        <div className="flex items-center gap-2">
-                          <TrendingDown className="h-4 w-4" />
-                          Expense
-                        </div>
-                      </SelectItem>
-                      <SelectItem value={TransactionType.INCOME}>
-                        <div className="flex items-center gap-2">
-                          <TrendingUp className="h-4 w-4" />
-                          Income
-                        </div>
-                      </SelectItem>
+                      {categories.map((category) => (
+                        <SelectItem key={category.id} value={category.id.toString()}>
+                          {category.icon} {category.name}
+                        </SelectItem>
+                      ))}
                     </SelectContent>
                   </Select>
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="amount">Amount</Label>
-                  <Input
-                    id="amount"
-                    type="number"
-                    step="0.01"
-                    value={formData.amount}
-                    onChange={(e) => setFormData({ ...formData, amount: e.target.value })}
-                    placeholder="0.00"
-                    required
-                  />
-                </div>
-
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="category">Category</Label>
-                    <Select
-                      value={formData.category_id}
-                      onValueChange={(value) => setFormData({ ...formData, category_id: value })}
-                    >
-                      <SelectTrigger id="category">
-                        <SelectValue placeholder="Select a category" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {categories.map((category) => (
-                          <SelectItem key={category.id} value={category.id.toString()}>
-                            {category.icon} {category.name}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-
-                  <div className="space-y-2">
-                    <div className="flex items-center justify-between">
-                      <Label>Tags (Optional)</Label>
-                      <Dialog open={tagDialogOpen} onOpenChange={setTagDialogOpen}>
-                        <DialogTrigger asChild>
-                          <Button type="button" size="icon" variant="ghost" className="h-6 w-6">
-                            <Plus className="h-4 w-4" />
-                          </Button>
-                        </DialogTrigger>
-                        <DialogContent className="sm:max-w-[400px]">
-                          <form onSubmit={handleCreateTag}>
-                            <DialogHeader>
-                              <DialogTitle>Create Tag</DialogTitle>
-                              <DialogDescription>
-                                Add a new tag to organize your transactions
-                              </DialogDescription>
-                            </DialogHeader>
-                            <div className="space-y-4 py-4">
-                              <div className="space-y-2">
-                                <Label htmlFor="tag-name">Name</Label>
+                  <div className="flex items-center justify-between">
+                    <Label>Tags (Optional)</Label>
+                    <Dialog open={tagDialogOpen} onOpenChange={setTagDialogOpen}>
+                      <DialogTrigger asChild>
+                        <Button type="button" size="icon" variant="ghost" className="h-6 w-6">
+                          <Plus className="h-4 w-4" />
+                        </Button>
+                      </DialogTrigger>
+                      <DialogContent className="sm:max-w-[400px]">
+                        <form onSubmit={handleCreateTag}>
+                          <DialogHeader>
+                            <DialogTitle>Create Tag</DialogTitle>
+                            <DialogDescription>
+                              Add a new tag to organize your transactions
+                            </DialogDescription>
+                          </DialogHeader>
+                          <div className="space-y-4 py-4">
+                            <div className="space-y-2">
+                              <Label htmlFor="tag-name">Name</Label>
+                              <Input
+                                id="tag-name"
+                                value={newTagData.name}
+                                onChange={(e) => setNewTagData({ ...newTagData, name: e.target.value })}
+                                placeholder="e.g., Work, Personal, Urgent"
+                                required
+                              />
+                            </div>
+                            <div className="space-y-2">
+                              <Label htmlFor="tag-color">Color</Label>
+                              <div className="flex gap-2 items-center">
                                 <Input
-                                  id="tag-name"
-                                  value={newTagData.name}
-                                  onChange={(e) => setNewTagData({ ...newTagData, name: e.target.value })}
-                                  placeholder="e.g., Work, Personal, Urgent"
-                                  required
+                                  id="tag-color"
+                                  type="color"
+                                  value={newTagData.color}
+                                  onChange={(e) => setNewTagData({ ...newTagData, color: e.target.value })}
+                                  className="w-20 h-10"
                                 />
-                              </div>
-                              <div className="space-y-2">
-                                <Label htmlFor="tag-color">Color</Label>
-                                <div className="flex gap-2 items-center">
-                                  <Input
-                                    id="tag-color"
-                                    type="color"
-                                    value={newTagData.color}
-                                    onChange={(e) => setNewTagData({ ...newTagData, color: e.target.value })}
-                                    className="w-20 h-10"
-                                  />
-                                  <Badge style={{ backgroundColor: newTagData.color }}>
-                                    {newTagData.name || 'Preview'}
-                                  </Badge>
-                                </div>
+                                <Badge style={{ backgroundColor: newTagData.color }}>
+                                  {newTagData.name || 'Preview'}
+                                </Badge>
                               </div>
                             </div>
-                            <DialogFooter>
-                              <Button type="submit">Create Tag</Button>
-                            </DialogFooter>
-                          </form>
-                        </DialogContent>
-                      </Dialog>
-                    </div>
-                    <div className="flex flex-wrap gap-1.5">
-                      {tags.map((tag) => {
-                        const isSelected = formData.tag_ids.includes(tag.id);
-                        return (
-                          <Badge
-                            key={tag.id}
-                            variant="outline"
-                            className={`cursor-pointer transition-all ${
-                              isSelected
-                                ? 'ring-2 ring-primary ring-offset-1 bg-primary/10'
-                                : 'hover:bg-accent'
-                            }`}
-                            onClick={() => {
-                              setFormData({
-                                ...formData,
-                                tag_ids: isSelected
-                                  ? formData.tag_ids.filter(id => id !== tag.id)
-                                  : [...formData.tag_ids, tag.id]
-                              });
-                            }}
-                          >
-                            {isSelected && <span className="mr-1">✓</span>}
-                            {tag.name}
-                          </Badge>
-                        );
-                      })}
-                      {tags.length === 0 && (
-                        <p className="text-xs text-muted-foreground">No tags available</p>
-                      )}
-                    </div>
+                          </div>
+                          <DialogFooter>
+                            <Button type="submit">Create Tag</Button>
+                          </DialogFooter>
+                        </form>
+                      </DialogContent>
+                    </Dialog>
+                  </div>
+                  <div className="flex flex-wrap gap-1.5">
+                    {tags.map((tag) => {
+                      const isSelected = formData.tag_ids.includes(tag.id);
+                      return (
+                        <Badge
+                          key={tag.id}
+                          variant="outline"
+                          className={`cursor-pointer transition-all ${
+                            isSelected
+                              ? 'ring-2 ring-primary ring-offset-1 bg-primary/10'
+                              : 'hover:bg-accent'
+                          }`}
+                          onClick={() => {
+                            setFormData({
+                              ...formData,
+                              tag_ids: isSelected
+                                ? formData.tag_ids.filter(id => id !== tag.id)
+                                : [...formData.tag_ids, tag.id]
+                            });
+                          }}
+                        >
+                          {isSelected && <span className="mr-1">✓</span>}
+                          {tag.name}
+                        </Badge>
+                      );
+                    })}
+                    {tags.length === 0 && (
+                      <p className="text-xs text-muted-foreground">No tags available</p>
+                    )}
                   </div>
                 </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="date">Date</Label>
-                  <Input
-                    id="date"
-                    type="date"
-                    value={formData.date}
-                    onChange={(e) => setFormData({ ...formData, date: e.target.value })}
-                    required
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="description">Description (Optional)</Label>
-                  <Input
-                    id="description"
-                    type="text"
-                    value={formData.description}
-                    onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                    placeholder="Add a note..."
-                  />
-                </div>
               </div>
-              <DialogFooter>
-                <Button type="submit">{editingTransaction ? 'Update Transaction' : 'Create Transaction'}</Button>
-              </DialogFooter>
-            </form>
-          </DialogContent>
-        </Dialog>
-          </div>
-        </div>
-      )}
+
+              <div className="space-y-2">
+                <Label htmlFor="date">Date</Label>
+                <Input
+                  id="date"
+                  type="date"
+                  value={formData.date}
+                  onChange={(e) => setFormData({ ...formData, date: e.target.value })}
+                  required
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="description">Description (Optional)</Label>
+                <Input
+                  id="description"
+                  type="text"
+                  value={formData.description}
+                  onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                  placeholder="Add a note..."
+                />
+              </div>
+            </div>
+            <DialogFooter>
+              <Button type="submit">{editingTransaction ? 'Update Transaction' : 'Create Transaction'}</Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
 
       <div className="flex-shrink-0 ">
         <TransactionFiltersComponent
