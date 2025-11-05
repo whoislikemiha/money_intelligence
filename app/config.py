@@ -15,6 +15,12 @@ class Settings(BaseSettings):
 
     ANTHROPIC_API_KEY: str
 
+    # Phoenix Observability
+    PHOENIX_ENABLED: bool = True
+    PHOENIX_HOST: str = "localhost"
+    PHOENIX_PORT: int = 6006
+    PHOENIX_PROJECT_NAME: str = "money-intelligence"
+
     class Config:
         env_file = ".env"
         case_sensitive = True

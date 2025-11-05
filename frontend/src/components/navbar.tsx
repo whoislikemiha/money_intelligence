@@ -20,7 +20,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import {Wallet, Settings, DollarSign, LogOut, User, BrainCircuit, Sparkles, Bell, PiggyBank} from 'lucide-react'
+import { Wallet, Settings, DollarSign, LogOut, User, BrainCircuit, Sparkles, Bell, PiggyBank } from 'lucide-react'
 import { Account } from '@/lib/types'
 import { useState, useEffect } from 'react'
 import { reminderApi } from '@/lib/api'
@@ -90,14 +90,6 @@ export function Navbar({ accounts, selectedAccount, onAccountChange, balancesVis
               >
                 <Wallet className="h-4 w-4" />
                 Dashboard
-              </Button>
-              <Button
-                variant="ghost"
-                onClick={() => router.push('/dashboard/budgets')}
-                className="gap-2"
-              >
-                <DollarSign className="h-4 w-4" />
-                Budgets
               </Button>
               <Button
                 variant="ghost"

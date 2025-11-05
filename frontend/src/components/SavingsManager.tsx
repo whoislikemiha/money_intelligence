@@ -202,20 +202,11 @@ export default function SavingsManager() {
         <div className="flex divide-x">
           <div className="p-6 flex-1">
             <div className="flex items-center gap-2 text-muted-foreground mb-1">
-              <Wallet className="h-4 w-4" />
-              <p className="text-sm">Total Balance</p>
-            </div>
-            <p className="text-3xl font-bold">
-              {getTotalBalance().toFixed(2)} 
-            </p>
-          </div>
-          <div className="p-6 flex-1">
-            <div className="flex items-center gap-2 text-muted-foreground mb-1">
               <PiggyBank className="h-4 w-4" />
               <p className="text-sm">Allocated to Savings</p>
             </div>
             <p className="text-3xl font-bold text-blue-600 dark:text-blue-400">
-              {getTotalSaved().toFixed(2)} 
+              {getTotalSaved().toFixed(2)}
             </p>
           </div>
           <div className="p-6 flex-1">
@@ -232,242 +223,242 @@ export default function SavingsManager() {
 
       {/* Savings Goals Section */}
       <div className="flex flex-col">
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-2xl font-bold tracking-tight">Savings Goals</h2>
-          <p className="text-muted-foreground">
-            {savingsGoals.length} {savingsGoals.length === 1 ? 'goal' : 'goals'}
-          </p>
+        <div className="flex items-center justify-between">
+          <div>
+            <h2 className="text-2xl font-bold tracking-tight">Savings Goals</h2>
+            <p className="text-muted-foreground">
+              {savingsGoals.length} {savingsGoals.length === 1 ? 'goal' : 'goals'}
+            </p>
+          </div>
+          <Dialog open={dialogOpen} onOpenChange={handleDialogClose}>
+            <DialogTrigger asChild>
+              <Button>
+                <Plus className="mr-2 h-4 w-4" />
+                Add Savings Goal
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="sm:max-w-[500px]">
+              <form onSubmit={handleSubmit}>
+                <DialogHeader>
+                  <DialogTitle>{editingGoal ? 'Edit Savings Goal' : 'Add Savings Goal'}</DialogTitle>
+                  <DialogDescription>
+                    {editingGoal ? 'Update your savings goal details' : 'Create a new savings goal'}
+                  </DialogDescription>
+                </DialogHeader>
+                <div className="space-y-4 py-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="name">Name</Label>
+                    <Input
+                      id="name"
+                      type="text"
+                      value={formData.name}
+                      onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                      placeholder="e.g., Emergency Fund"
+                      required
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="target_amount">Target Amount (Optional)</Label>
+                    <Input
+                      id="target_amount"
+                      type="number"
+                      step="0.01"
+                      value={formData.target_amount}
+                      onChange={(e) => setFormData({ ...formData, target_amount: e.target.value })}
+                      placeholder="0.00"
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="color">Color</Label>
+                    <Input
+                      id="color"
+                      type="color"
+                      value={formData.color}
+                      onChange={(e) => setFormData({ ...formData, color: e.target.value })}
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="notes">Notes (Optional)</Label>
+                    <Input
+                      id="notes"
+                      type="text"
+                      value={formData.notes}
+                      onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
+                      placeholder="Add a note..."
+                    />
+                  </div>
+                </div>
+                <DialogFooter>
+                  <Button type="submit">{editingGoal ? 'Update Goal' : 'Create Goal'}</Button>
+                </DialogFooter>
+              </form>
+            </DialogContent>
+          </Dialog>
         </div>
-        <Dialog open={dialogOpen} onOpenChange={handleDialogClose}>
-          <DialogTrigger asChild>
-            <Button>
-              <Plus className="mr-2 h-4 w-4" />
-              Add Savings Goal
-            </Button>
-          </DialogTrigger>
-          <DialogContent className="sm:max-w-[500px]">
-            <form onSubmit={handleSubmit}>
+
+        {/* Transaction Dialog */}
+        <Dialog open={transactionDialogOpen} onOpenChange={setTransactionDialogOpen}>
+          <DialogContent className="sm:max-w-[425px]">
+            <form onSubmit={handleTransactionSubmit}>
               <DialogHeader>
-                <DialogTitle>{editingGoal ? 'Edit Savings Goal' : 'Add Savings Goal'}</DialogTitle>
+                <DialogTitle>
+                  {transactionFormData.description === 'Allocation' ? 'Allocate Funds' : 'Deallocate Funds'}
+                </DialogTitle>
                 <DialogDescription>
-                  {editingGoal ? 'Update your savings goal details' : 'Create a new savings goal'}
+                  {transactionFormData.description === 'Allocation'
+                    ? `Add funds to ${selectedGoal?.name}`
+                    : `Remove funds from ${selectedGoal?.name}`}
                 </DialogDescription>
               </DialogHeader>
               <div className="space-y-4 py-4">
                 <div className="space-y-2">
-                  <Label htmlFor="name">Name</Label>
+                  <Label htmlFor="amount">Amount</Label>
                   <Input
-                    id="name"
-                    type="text"
-                    value={formData.name}
-                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                    placeholder="e.g., Emergency Fund"
+                    id="amount"
+                    type="number"
+                    step="0.01"
+                    value={transactionFormData.amount}
+                    onChange={(e) => setTransactionFormData({ ...transactionFormData, amount: e.target.value })}
+                    placeholder="0.00"
                     required
                   />
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="target_amount">Target Amount (Optional)</Label>
+                  <Label htmlFor="transaction_description">Description (Optional)</Label>
                   <Input
-                    id="target_amount"
-                    type="number"
-                    step="0.01"
-                    value={formData.target_amount}
-                    onChange={(e) => setFormData({ ...formData, target_amount: e.target.value })}
-                    placeholder="0.00"
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="color">Color</Label>
-                  <Input
-                    id="color"
-                    type="color"
-                    value={formData.color}
-                    onChange={(e) => setFormData({ ...formData, color: e.target.value })}
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="notes">Notes (Optional)</Label>
-                  <Input
-                    id="notes"
+                    id="transaction_description"
                     type="text"
-                    value={formData.notes}
-                    onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
+                    value={transactionFormData.description}
+                    onChange={(e) => setTransactionFormData({ ...transactionFormData, description: e.target.value })}
                     placeholder="Add a note..."
                   />
                 </div>
               </div>
               <DialogFooter>
-                <Button type="submit">{editingGoal ? 'Update Goal' : 'Create Goal'}</Button>
+                <Button type="submit">
+                  {transactionFormData.description === 'Allocation' ? 'Allocate' : 'Deallocate'}
+                </Button>
               </DialogFooter>
             </form>
           </DialogContent>
         </Dialog>
-      </div>
 
-      {/* Transaction Dialog */}
-      <Dialog open={transactionDialogOpen} onOpenChange={setTransactionDialogOpen}>
-        <DialogContent className="sm:max-w-[425px]">
-          <form onSubmit={handleTransactionSubmit}>
-            <DialogHeader>
-              <DialogTitle>
-                {transactionFormData.description === 'Allocation' ? 'Allocate Funds' : 'Deallocate Funds'}
-              </DialogTitle>
-              <DialogDescription>
-                {transactionFormData.description === 'Allocation'
-                  ? `Add funds to ${selectedGoal?.name}`
-                  : `Remove funds from ${selectedGoal?.name}`}
-              </DialogDescription>
-            </DialogHeader>
-            <div className="space-y-4 py-4">
-              <div className="space-y-2">
-                <Label htmlFor="amount">Amount</Label>
-                <Input
-                  id="amount"
-                  type="number"
-                  step="0.01"
-                  value={transactionFormData.amount}
-                  onChange={(e) => setTransactionFormData({ ...transactionFormData, amount: e.target.value })}
-                  placeholder="0.00"
-                  required
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="transaction_description">Description (Optional)</Label>
-                <Input
-                  id="transaction_description"
-                  type="text"
-                  value={transactionFormData.description}
-                  onChange={(e) => setTransactionFormData({ ...transactionFormData, description: e.target.value })}
-                  placeholder="Add a note..."
-                />
-              </div>
+        <div>
+          {loading ? (
+            <div className="flex items-center justify-center py-8">
+              <div className="text-muted-foreground">Loading savings goals...</div>
             </div>
-            <DialogFooter>
-              <Button type="submit">
-                {transactionFormData.description === 'Allocation' ? 'Allocate' : 'Deallocate'}
+          ) : savingsGoals.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-12 border-2 border-dashed rounded-lg">
+              <p className="text-muted-foreground mb-4">No savings goals yet</p>
+              <Button variant="outline" onClick={() => setDialogOpen(true)}>
+                <Plus className="mr-2 h-4 w-4" />
+                Add your first savings goal
               </Button>
-            </DialogFooter>
-          </form>
-        </DialogContent>
-      </Dialog>
+            </div>
+          ) : (
+            <div className="flex gap-4 overflow-x-auto pb-2 p-2">
+              {savingsGoals.map((goal) => {
+                const currentAmount = goal.current_amount || 0;
+                const targetAmount = goal.target_amount || 0;
+                const percentage = targetAmount > 0 ? (currentAmount / targetAmount) * 100 : 0;
+                const hasTarget = targetAmount > 0;
 
-      <div>
-        {loading ? (
-          <div className="flex items-center justify-center py-8">
-            <div className="text-muted-foreground">Loading savings goals...</div>
-          </div>
-        ) : savingsGoals.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-12 border-2 border-dashed rounded-lg">
-            <p className="text-muted-foreground mb-4">No savings goals yet</p>
-            <Button variant="outline" onClick={() => setDialogOpen(true)}>
-              <Plus className="mr-2 h-4 w-4" />
-              Add your first savings goal
-            </Button>
-          </div>
-        ) : (
-          <div className="flex gap-4 overflow-x-auto pb-2 p-2">
-            {savingsGoals.map((goal) => {
-              const currentAmount = goal.current_amount || 0;
-              const targetAmount = goal.target_amount || 0;
-              const percentage = targetAmount > 0 ? (currentAmount / targetAmount) * 100 : 0;
-              const hasTarget = targetAmount > 0;
-
-              return (
-                <div
-                  key={goal.id}
-                  className="border rounded-lg p-4 space-y-3 border-l-4 min-w-[320px]"
-                  style={{ borderLeftColor: goal.color }}
-                >
-                  <div className="flex items-start justify-between">
-                    <div>
-                      <h3 className="font-semibold flex items-center gap-2">
-                        <PiggyBank className="h-4 w-4" style={{ color: goal.color }} />
-                        {goal.name}
-                      </h3>
-                      {goal.notes && (
-                        <p className="text-sm text-muted-foreground">{goal.notes}</p>
-                      )}
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => handleEdit(goal)}
-                        className="h-8 w-8"
-                      >
-                        <Pencil className="h-4 w-4" />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => handleDelete(goal.id)}
-                        className="h-8 w-8"
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  </div>
-
-                  <div className="space-y-2">
-                    <div className="flex items-center justify-between text-sm">
-                      <div className="flex items-center gap-2">
-                        <PiggyBank className="h-4 w-4 text-muted-foreground" />
-                        <span className="text-muted-foreground">
-                          {currentAmount.toFixed(2)}
-                          {hasTarget && ` of ${targetAmount.toFixed(2)}`}
-                        </span>
+                return (
+                  <div
+                    key={goal.id}
+                    className="border rounded-lg p-4 space-y-3 border-l-4 min-w-[320px]"
+                    style={{ borderLeftColor: goal.color }}
+                  >
+                    <div className="flex items-start justify-between">
+                      <div>
+                        <h3 className="font-semibold flex items-center gap-2">
+                          <PiggyBank className="h-4 w-4" style={{ color: goal.color }} />
+                          {goal.name}
+                        </h3>
+                        {goal.notes && (
+                          <p className="text-sm text-muted-foreground">{goal.notes}</p>
+                        )}
                       </div>
+                      <div className="flex items-center gap-2">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => handleEdit(goal)}
+                          className="h-8 w-8"
+                        >
+                          <Pencil className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => handleDelete(goal.id)}
+                          className="h-8 w-8"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </div>
+
+                    <div className="space-y-2">
+                      <div className="flex items-center justify-between text-sm">
+                        <div className="flex items-center gap-2">
+                          <PiggyBank className="h-4 w-4 text-muted-foreground" />
+                          <span className="text-muted-foreground">
+                            {currentAmount.toFixed(2)}
+                            {hasTarget && ` of ${targetAmount.toFixed(2)}`}
+                          </span>
+                        </div>
+                        {hasTarget && (
+                          <span className="font-semibold" style={{ color: goal.color }}>
+                            {percentage.toFixed(0)}%
+                          </span>
+                        )}
+                      </div>
+
                       {hasTarget && (
-                        <span className="font-semibold" style={{ color: goal.color }}>
-                          {percentage.toFixed(0)}%
-                        </span>
+                        <Progress
+                          value={Math.min(percentage, 100)}
+                          className="h-2"
+                          style={{
+                            // @ts-expect-error - CSS custom property
+                            '--progress-background': goal.color
+                          }}
+                        />
                       )}
                     </div>
 
-                    {hasTarget && (
-                      <Progress
-                        value={Math.min(percentage, 100)}
-                        className="h-2"
-                        style={{
-                          // @ts-expect-error - CSS custom property
-                          '--progress-background': goal.color
-                        }}
-                      />
-                    )}
+                    <div className="flex gap-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handleOpenTransactionDialog(goal, true)}
+                        className="flex-1"
+                      >
+                        <TrendingUp className="mr-2 h-4 w-4" />
+                        Allocate
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handleOpenTransactionDialog(goal, false)}
+                        className="flex-1"
+                        disabled={currentAmount <= 0}
+                      >
+                        <TrendingDown className="mr-2 h-4 w-4" />
+                        Deallocate
+                      </Button>
+                    </div>
                   </div>
-
-                  <div className="flex gap-2">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => handleOpenTransactionDialog(goal, true)}
-                      className="flex-1"
-                    >
-                      <TrendingUp className="mr-2 h-4 w-4" />
-                      Allocate
-                    </Button>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => handleOpenTransactionDialog(goal, false)}
-                      className="flex-1"
-                      disabled={currentAmount <= 0}
-                    >
-                      <TrendingDown className="mr-2 h-4 w-4" />
-                      Deallocate
-                    </Button>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        )}
-      </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );

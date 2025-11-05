@@ -1,8 +1,10 @@
 import logging
+from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.config import settings
+from app.observability import init_phoenix, shutdown_phoenix
 
 from app.routers import auth, account, transaction, category, tag, budget, agent, reminder, savings_goal
 from app.assistant import router as assistant_router
@@ -14,10 +16,22 @@ logging.basicConfig(
     datefmt='%H:%M:%S'
 )
 
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    """Application lifespan handler for startup and shutdown"""
+    # Startup: Initialize Phoenix observability
+    init_phoenix()
+    yield
+    # Shutdown: Cleanup Phoenix
+    shutdown_phoenix()
+
+
 app = FastAPI(
     title=settings.PROJECT_NAME,
     version=settings.VERSION,
-    openapi_url=f"{settings.API_V1_STR}/openapi.json"
+    openapi_url=f"{settings.API_V1_STR}/openapi.json",
+    lifespan=lifespan
 )
 
 app.add_middleware(
