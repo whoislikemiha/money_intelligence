@@ -3,6 +3,8 @@
 import { ChatMessage as ChatMessageType } from '@/lib/types';
 import { Bot, User } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 
 interface ChatMessageProps {
   message: ChatMessageType;
@@ -27,7 +29,15 @@ export default function ChatMessage({ message }: ChatMessageProps) {
             ? 'bg-primary text-primary-foreground'
             : 'bg-secondary text-secondary-foreground'
         }`}>
-          <div className="whitespace-pre-wrap break-words">{message.content}</div>
+          {isUser ? (
+            <div className="whitespace-pre-wrap break-words">{message.content}</div>
+          ) : (
+            <div className="prose prose-sm max-w-none dark:prose-invert">
+              <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                {message.content}
+              </ReactMarkdown>
+            </div>
+          )}
         </div>
 
         {/* Tool calls */}

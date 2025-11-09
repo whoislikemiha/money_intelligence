@@ -13,6 +13,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Sparkles, Trash2, Loader2 } from 'lucide-react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 
 interface AssistantChatProps {
   accountId: number;
@@ -208,9 +210,11 @@ export default function AssistantChat({ accountId }: AssistantChatProps) {
                 {/* Show streaming message */}
                 {currentAssistantMessage && (
                   <div className="rounded-lg px-4 py-2 bg-secondary text-secondary-foreground">
-                    <div className="whitespace-pre-wrap break-words">
-                      {currentAssistantMessage}
-                      <span className="inline-block w-2 h-4 ml-1 bg-current animate-pulse" />
+                    <div className="prose prose-sm max-w-none dark:prose-invert inline">
+                      <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                        {currentAssistantMessage}
+                      </ReactMarkdown>
+                      <span className="inline-block w-2 h-4 ml-1 bg-current animate-pulse align-middle" />
                     </div>
                   </div>
                 )}
