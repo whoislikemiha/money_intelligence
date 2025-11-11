@@ -35,15 +35,15 @@ def serialize_tool_input(tool_input: Any) -> Any:
         return tool_input
 
     # Pydantic v2 models (preferred)
-    if hasattr(tool_input, 'model_dump'):
+    if hasattr(tool_input, "model_dump"):
         return tool_input.model_dump()
 
     # Pydantic v1 models (fallback)
-    if hasattr(tool_input, 'dict'):
+    if hasattr(tool_input, "dict"):
         return tool_input.dict()
 
     # Objects with __dict__
-    if hasattr(tool_input, '__dict__'):
+    if hasattr(tool_input, "__dict__"):
         return tool_input.__dict__
 
     # Last resort: convert to string
@@ -71,15 +71,15 @@ def extract_content_from_chunk(chunk_or_output) -> str:
         return content
     elif isinstance(content, list):
         # Content is a list of blocks, extract text
-        return ''.join(
-            block.get('text', '') if isinstance(block, dict) else str(block)
+        return "".join(
+            block.get("text", "") if isinstance(block, dict) else str(block)
             for block in content
         )
     return str(content)
 
 
-SYSTEM_PROMPT = """You are a helpful financial assistant. You help users understand their finances, create transactions, and manage their money.
-
+SYSTEM_PROMPT = f"""You are a helpful financial assistant. You help users understand their finances, track their expenses and create transactions.
+Current date is {datetime.now().strftime("%d-%m-%Y")} 
 You have access to tools to:
 - Analyze spending patterns and trends
 - View budgets and budget utilization
@@ -113,25 +113,13 @@ def load_user_context(db: Session, user_id: int, account_id: int) -> UserContext
     # Get categories
     categories = CategoryCrud.get_all_categories(db, user_id)
     categories_data = [
-        {
-            "id": cat.id,
-            "name": cat.name,
-            "icon": cat.icon,
-            "color": cat.color
-        }
+        {"id": cat.id, "name": cat.name, "icon": cat.icon, "color": cat.color}
         for cat in categories
     ]
 
     # Get tags
     tags = TagCrud.get_all_tags(db, user_id)
-    tags_data = [
-        {
-            "id": tag.id,
-            "name": tag.name,
-            "color": tag.color
-        }
-        for tag in tags
-    ]
+    tags_data = [{"id": tag.id, "name": tag.name, "color": tag.color} for tag in tags]
 
     # Get budgets
     budgets = BudgetCrud.get_all_budgets(db, user_id)
@@ -140,7 +128,7 @@ def load_user_context(db: Session, user_id: int, account_id: int) -> UserContext
             "id": budget.id,
             "category_id": budget.category_id,
             "amount": float(budget.amount),
-            "notes": budget.notes
+            "notes": budget.notes,
         }
         for budget in budgets
     ]
@@ -156,7 +144,7 @@ def load_user_context(db: Session, user_id: int, account_id: int) -> UserContext
             "description": t.description,
             "category_id": t.category_id,
             "type": t.type.value,
-            "date": t.date.isoformat()
+            "date": t.date.isoformat(),
         }
         for t in transactions
         if t.date >= thirty_days_ago.date()
@@ -171,15 +159,12 @@ def load_user_context(db: Session, user_id: int, account_id: int) -> UserContext
         tags=tags_data,
         budgets=budgets_data,
         recent_transactions=recent_transactions,
-        account_balance=account_balance
+        account_balance=account_balance,
     )
 
 
 async def chat_stream(
-        message: str,
-        user_id: int,
-        account_id: int,
-        db: Session
+    message: str, user_id: int, account_id: int, db: Session
 ) -> AsyncGenerator[Dict[str, Any], None]:
     """
     Stream chat responses with tool execution updates.
@@ -207,8 +192,8 @@ async def chat_stream(
         extra={
             "user_id": user_id,
             "account_id": account_id,
-            "message_length": len(message)
-        }
+            "message_length": len(message),
+        },
     )
 
     # Load user context
@@ -220,8 +205,8 @@ async def chat_stream(
             "categories_count": len(user_context.categories),
             "tags_count": len(user_context.tags),
             "budgets_count": len(user_context.budgets),
-            "transactions_count": len(user_context.recent_transactions)
-        }
+            "transactions_count": len(user_context.recent_transactions),
+        },
     )
 
     # Create the assistant graph
@@ -230,31 +215,29 @@ async def chat_stream(
     # Build initial state
     initial_state: AssistantState = {
         "messages": [
-            {
-                "role": "system",
-                "content": SYSTEM_PROMPT
-            },
-            {
-                "role": "user",
-                "content": message
-            }
+            {"role": "system", "content": SYSTEM_PROMPT},
+            {"role": "user", "content": message},
         ],
         "account_id": account_id,
         "user_id": user_id,
         "user_context": user_context.model_dump(),
-        "pending_confirmations": []
+        "pending_confirmations": [],
     }
 
     # Console log: Initial request to LLM
-    print("\n" + "="*80)
+    print("\n" + "=" * 80)
     print("🚀 INITIAL REQUEST TO LLM")
-    print("="*80)
+    print("=" * 80)
     print(f"Messages being sent:")
     for msg in initial_state["messages"]:
         print(f"  Role: {msg['role']}")
-        print(f"  Content: {msg['content'][:200]}..." if len(msg['content']) > 200 else f"  Content: {msg['content']}")
+        print(
+            f"  Content: {msg['content'][:200]}..."
+            if len(msg["content"]) > 200
+            else f"  Content: {msg['content']}"
+        )
         print()
-    print("="*80 + "\n")
+    print("=" * 80 + "\n")
 
     # Yield thinking event
     yield {"type": "thinking"}
@@ -279,10 +262,10 @@ async def chat_stream(
                 tool_input = event.get("data", {}).get("input", {})
 
                 # Console log: Tool call
-                print("\n" + "🔧 "*40)
+                print("\n" + "🔧 " * 40)
                 print(f"TOOL CALL STARTED: {tool_name}")
                 print(f"Tool input: {json.dumps(tool_input, indent=2, default=str)}")
-                print("🔧 "*40 + "\n")
+                print("🔧 " * 40 + "\n")
 
                 # Ensure tool_input is JSON serializable
                 serializable_input = serialize_tool_input(tool_input)
@@ -290,7 +273,7 @@ async def chat_stream(
                 yield {
                     "type": "tool_start",
                     "tool_name": tool_name,
-                    "tool_input": serializable_input
+                    "tool_input": serializable_input,
                 }
 
                 logger.info(
@@ -298,8 +281,8 @@ async def chat_stream(
                     extra={
                         "tool_name": tool_name,
                         "user_id": user_id,
-                        "account_id": account_id
-                    }
+                        "account_id": account_id,
+                    },
                 )
 
             # Tool execution completed
@@ -314,17 +297,20 @@ async def chat_stream(
                     output_str = str(output) if output else ""
 
                 # Console log: Tool response
-                print("\n" + "✅ "*40)
+                print("\n" + "✅ " * 40)
                 print(f"TOOL CALL COMPLETED: {tool_name}")
                 print(f"Tool output (first 500 chars): {output_str[:500]}...")
-                print("✅ "*40 + "\n")
+                print("✅ " * 40 + "\n")
 
                 # Check if this is a special event response (structured JSON with marker)
                 special_event_handled = False
                 try:
                     output_data = json.loads(output_str)
 
-                    if isinstance(output_data, dict) and "__special_event__" in output_data:
+                    if (
+                        isinstance(output_data, dict)
+                        and "__special_event__" in output_data
+                    ):
                         event_type_name = output_data["__special_event__"]
 
                         if event_type_name == "transaction_previews":
@@ -332,11 +318,13 @@ async def chat_stream(
                             yield {
                                 "type": "transaction_previews",
                                 "transactions": output_data.get("transactions", []),
-                                "count": output_data.get("count", 0)
+                                "count": output_data.get("count", 0),
                             }
 
                             # Use the message for tool output
-                            output_str = output_data.get("message", "Transaction previews ready")
+                            output_str = output_data.get(
+                                "message", "Transaction previews ready"
+                            )
                             special_event_handled = True
 
                 except (json.JSONDecodeError, KeyError, TypeError):
@@ -349,7 +337,7 @@ async def chat_stream(
                     "type": "tool_end",
                     "tool_name": tool_name,
                     "tool_output": output_str,
-                    "success": True
+                    "success": True,
                 }
 
                 logger.info(
@@ -359,8 +347,8 @@ async def chat_stream(
                         "user_id": user_id,
                         "account_id": account_id,
                         "output_length": len(output_str),
-                        "special_event": special_event_handled
-                    }
+                        "special_event": special_event_handled,
+                    },
                 )
 
             # LLM chunk (streaming response)
@@ -370,7 +358,9 @@ async def chat_stream(
                 # Console log: Stream chunk details
                 print(f"💬 STREAM CHUNK:")
                 print(f"   Chunk type: {type(chunk)}")
-                print(f"   Chunk attributes: {dir(chunk) if hasattr(chunk, '__dir__') else 'N/A'}")
+                print(
+                    f"   Chunk attributes: {dir(chunk) if hasattr(chunk, '__dir__') else 'N/A'}"
+                )
                 print(f"   Chunk content: {chunk}")
 
                 content_str = extract_content_from_chunk(chunk)
@@ -383,37 +373,26 @@ async def chat_stream(
                     yield {
                         "type": "message_chunk",
                         "content": content_str,
-                        "is_final": False
+                        "is_final": False,
                     }
 
             # LLM response complete
             elif event_type == "on_chat_model_end":
                 # Console log: LLM response finished
-                print("\n" + "🏁 "*40)
+                print("\n" + "🏁 " * 40)
                 print("LLM RESPONSE COMPLETED")
-                print("🏁 "*40 + "\n")
+                print("🏁 " * 40 + "\n")
 
                 # Send final marker to signal completion
                 # Don't send content here as it was already streamed via on_chat_model_stream
-                yield {
-                    "type": "message_chunk",
-                    "content": "",
-                    "is_final": True
-                }
+                yield {"type": "message_chunk", "content": "", "is_final": True}
 
     except asyncio.CancelledError:
         logger.info(
             "Chat stream cancelled by client",
-            extra={
-                "user_id": user_id,
-                "account_id": account_id
-            }
+            extra={"user_id": user_id, "account_id": account_id},
         )
-        yield {
-            "type": "error",
-            "message": "Request cancelled",
-            "recoverable": False
-        }
+        yield {"type": "error", "message": "Request cancelled", "recoverable": False}
         raise
     except Exception as e:
         logger.error(
@@ -422,9 +401,9 @@ async def chat_stream(
                 "user_id": user_id,
                 "account_id": account_id,
                 "error_type": type(e).__name__,
-                "error_message": str(e)
+                "error_message": str(e),
             },
-            exc_info=True
+            exc_info=True,
         )
         # Provide user-friendly error messages
         error_message = "An error occurred while processing your request."
@@ -435,11 +414,7 @@ async def chat_stream(
         elif "database" in str(e).lower() or "connection" in str(e).lower():
             error_message = "Database connection error. Please try again."
 
-        yield {
-            "type": "error",
-            "message": error_message,
-            "recoverable": True
-        }
+        yield {"type": "error", "message": error_message, "recoverable": True}
     finally:
         # Cleanup: Ensure graph iterator is closed if still active
         if graph_iterator is not None:
@@ -447,10 +422,7 @@ async def chat_stream(
                 await graph_iterator.aclose()
                 logger.debug(
                     "Graph iterator closed",
-                    extra={
-                        "user_id": user_id,
-                        "account_id": account_id
-                    }
+                    extra={"user_id": user_id, "account_id": account_id},
                 )
             except Exception as e:
                 logger.warning(
@@ -458,25 +430,16 @@ async def chat_stream(
                     extra={
                         "user_id": user_id,
                         "account_id": account_id,
-                        "error": str(e)
-                    }
+                        "error": str(e),
+                    },
                 )
 
         logger.info(
-            "Chat stream ended",
-            extra={
-                "user_id": user_id,
-                "account_id": account_id
-            }
+            "Chat stream ended", extra={"user_id": user_id, "account_id": account_id}
         )
 
 
-def chat(
-        message: str,
-        user_id: int,
-        account_id: int,
-        db: Session
-) -> str:
+def chat(message: str, user_id: int, account_id: int, db: Session) -> str:
     """
     Non-streaming chat (for testing or simple use cases).
 
@@ -498,19 +461,13 @@ def chat(
     # Build initial state
     initial_state: AssistantState = {
         "messages": [
-            {
-                "role": "system",
-                "content": SYSTEM_PROMPT
-            },
-            {
-                "role": "user",
-                "content": message
-            }
+            {"role": "system", "content": SYSTEM_PROMPT},
+            {"role": "user", "content": message},
         ],
         "account_id": account_id,
         "user_id": user_id,
         "user_context": user_context.model_dump(),
-        "pending_confirmations": []
+        "pending_confirmations": [],
     }
 
     # Run the graph

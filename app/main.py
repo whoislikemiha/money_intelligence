@@ -6,7 +6,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from app.config import settings
 from app.observability import init_phoenix, shutdown_phoenix
 
-from app.routers import auth, account, transaction, category, tag, budget, agent, reminder, savings_goal
+from app.routers import auth, account, transaction, category, tag, budget, agent, reminder, savings_goal, analytics
 from app.assistant import router as assistant_router
 
 # Configure logging
@@ -53,6 +53,7 @@ app.include_router(reminder.router, prefix=f"{settings.API_V1_STR}/reminder", ta
 app.include_router(savings_goal.router, prefix=f"{settings.API_V1_STR}/savings-goal", tags=["savings-goal"])
 app.include_router(agent.router, prefix=f"{settings.API_V1_STR}/agent", tags=["agent"])
 app.include_router(assistant_router.router, prefix=f"{settings.API_V1_STR}/assistant", tags=["assistant"])
+app.include_router(analytics.router, prefix=f"{settings.API_V1_STR}/analytics", tags=["analytics"])
 
 @app.get("/api")
 async def root():

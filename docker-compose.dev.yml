@@ -1,0 +1,56 @@
+services:
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile.backend
+    ports:
+      - "127.0.0.1:8000:8000"
+    env_file:
+      - .env
+    environment:
+      - PHOENIX_HOST=phoenix
+      - PHOENIX_PORT=6006
+    volumes:
+      - ./data:/app/data
+      - ./app:/app/app  # Mount source code for hot reload
+    depends_on:
+      - phoenix
+    restart: unless-stopped
+    command: uv run fastapi dev app/main.py --host 0.0.0.0 --port 8000
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile.dev
+    ports:
+      - "127.0.0.1:3000:3000"
+    environment:
+      - NEXT_PUBLIC_API_URL=http://localhost:8000/api
+    volumes:
+      - ./frontend/src:/app/src  # Mount source for hot reload
+      - ./frontend/public:/app/public
+      - ./frontend/package.json:/app/package.json
+      - ./frontend/package-lock.json:/app/package-lock.json
+      - ./frontend/next.config.ts:/app/next.config.ts
+      - ./frontend/tsconfig.json:/app/tsconfig.json
+      - ./frontend/postcss.config.mjs:/app/postcss.config.mjs
+      - /app/node_modules  # Anonymous volume for node_modules
+      - /app/.next  # Anonymous volume for .next cache
+    depends_on:
+      - backend
+    restart: unless-stopped
+
+  phoenix:
+    image: arizephoenix/phoenix:latest
+    ports:
+      - "127.0.0.1:6006:6006"  # Phoenix UI
+      - "127.0.0.1:4317:4317"  # OTLP gRPC
+    environment:
+      - PHOENIX_WORKING_DIR=/phoenix
+    volumes:
+      - phoenix-data:/phoenix
+    restart: unless-stopped
+
+volumes:
+  data:
+  phoenix-data:

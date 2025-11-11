@@ -18,7 +18,6 @@ def init_phoenix() -> Optional[TracerProvider]:
     """
     Initialize Phoenix observability for LangGraph agents.
 
-    This sets up automatic instrumentation for both the Transaction Parser
     and Financial Assistant agents using OpenTelemetry.
 
     Returns:
@@ -39,7 +38,9 @@ def init_phoenix() -> Optional[TracerProvider]:
         from openinference.instrumentation.langchain import LangChainInstrumentor
 
         # Construct Phoenix endpoint - must include /v1/traces for OTLP HTTP
-        phoenix_endpoint = f"http://{settings.PHOENIX_HOST}:{settings.PHOENIX_PORT}/v1/traces"
+        phoenix_endpoint = (
+            f"http://{settings.PHOENIX_HOST}:{settings.PHOENIX_PORT}/v1/traces"
+        )
 
         logger.info(f"Initializing Phoenix observability at {phoenix_endpoint}")
 
@@ -52,13 +53,15 @@ def init_phoenix() -> Optional[TracerProvider]:
         # Manually instrument LangChain/LangGraph with skip_dep_check to avoid version issues
         LangChainInstrumentor().instrument(
             tracer_provider=_tracer_provider,
-            skip_dep_check=True  # Skip dependency version checks
+            skip_dep_check=True,  # Skip dependency version checks
         )
 
         logger.info(
             f"✓ Phoenix observability enabled for project '{settings.PHOENIX_PROJECT_NAME}'"
         )
-        logger.info(f"  View traces at: http://{settings.PHOENIX_HOST}:{settings.PHOENIX_PORT}")
+        logger.info(
+            f"  View traces at: http://{settings.PHOENIX_HOST}:{settings.PHOENIX_PORT}"
+        )
 
         return _tracer_provider
 

@@ -8,6 +8,8 @@ import { TransactionType, Category, Account, MonthlyStats } from '@/lib/types';
 import TransactionManager from '@/components/TransactionManager';
 import BudgetManager from '@/components/BudgetManager';
 import TransactionActions from '@/components/TransactionActions';
+import SpendingBreakdownChart from '@/components/SpendingBreakdownChart';
+import SpendingTimelineChart from '@/components/SpendingTimelineChart';
 import { Navbar } from '@/components/navbar';
 import { Button } from '@/components/ui/button';
 import { Eye, EyeOff, List } from 'lucide-react';
@@ -186,7 +188,7 @@ export default function DashboardPage() {
   }
 
   return (
-    <div className="h-screen flex flex-col overflow-hidden">
+    <div className="h-full flex flex-col ">
       <Navbar
         accounts={accounts}
         selectedAccount={selectedAccount}
@@ -344,6 +346,20 @@ export default function DashboardPage() {
                   }}
                 />
               </div>
+            </div>
+
+            {/* Charts Section */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 flex-shrink-0">
+              <SpendingBreakdownChart
+                accountId={selectedAccount.id}
+                currency={selectedAccount.currency}
+                balancesVisible={balancesVisible}
+              />
+              <SpendingTimelineChart
+                accountId={selectedAccount.id}
+                currency={selectedAccount.currency}
+                balancesVisible={balancesVisible}
+              />
             </div>
 
             {/* Transactions - Show when budget or balance section selected */}
