@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation';
 import { accountApi } from '@/lib/api';
 import { Account } from '@/lib/types';
 import AssistantChat from '@/components/assistant/AssistantChat';
+import ConversationSidebar from '@/components/assistant/ConversationSidebar';
 import { Navbar } from '@/components/navbar';
 import { Loader2 } from 'lucide-react';
 
@@ -15,6 +16,7 @@ export default function AssistantPage() {
   const [accounts, setAccounts] = useState<Account[]>([]);
   const [selectedAccount, setSelectedAccount] = useState<Account | null>(null);
   const [loading, setLoading] = useState(true);
+  const [currentConversationId, setCurrentConversationId] = useState<number | undefined>(undefined);
 
   useEffect(() => {
     if (!authLoading && !user) {
@@ -80,6 +82,14 @@ export default function AssistantPage() {
     );
   }
 
+  const handleNewConversation = () => {
+    setCurrentConversationId(undefined);
+  };
+
+  const handleConversationSelect = (conversationId: number | undefined) => {
+    setCurrentConversationId(conversationId);
+  };
+
   return (
     <div className="h-screen flex flex-col overflow-hidden">
       <Navbar
@@ -87,9 +97,23 @@ export default function AssistantPage() {
         selectedAccount={selectedAccount}
         onAccountChange={handleAccountChange}
       />
-      <main className="flex-1 min-h-0 flex flex-col">
-        <div className="container mx-auto py-6 px-4 flex-1 min-h-0 flex flex-col">
-          <AssistantChat accountId={selectedAccount.id} />
+      <main className="flex-1 min-h-0 flex">
+        {/* Conversation Sidebar */}
+        <div className="w-64 flex-shrink-0">
+          <ConversationSidebar
+            currentConversationId={currentConversationId}
+            onConversationSelect={handleConversationSelect}
+            onNewConversation={handleNewConversation}
+          />
+        </div>
+
+        {/* Chat Area */}
+        <div className="flex-1 min-w-0">
+          <AssistantChat
+            accountId={selectedAccount.id}
+            conversationId={currentConversationId}
+            onConversationChange={setCurrentConversationId}
+          />
         </div>
       </main>
     </div>

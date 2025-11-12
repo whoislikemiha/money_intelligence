@@ -3,18 +3,20 @@
 import asyncio
 import json
 import logging
-from typing import AsyncGenerator, Dict, Any
+from typing import AsyncGenerator, Dict, Any, Optional
 from datetime import datetime, timedelta
 from sqlalchemy.orm import Session
 
 from app.assistant.graph import create_assistant_graph
 from app.assistant.state import AssistantState
 from app.assistant.schemas.chat import UserContext
+from app.assistant.title_generator import generate_conversation_title
 from app.crud.category_crud import CategoryCrud
 from app.crud.tag_crud import TagCrud
 from app.crud.budget_crud import BudgetCrud
 from app.crud.transaction_crud import TransactionCrud
 from app.crud.account_crud import AccountCrud
+from app.crud.conversation_crud import ConversationCrud, MessageCrud
 
 logger = logging.getLogger(__name__)
 
@@ -78,8 +80,13 @@ def extract_content_from_chunk(chunk_or_output) -> str:
     return str(content)
 
 
-SYSTEM_PROMPT = f"""You are a helpful financial assistant. You help users understand their finances, track their expenses and create transactions.
-Current date is {datetime.now().strftime("%d-%m-%Y")} 
+def get_system_prompt() -> str:
+    """
+    Generate system prompt with current date.
+    System prompt is NOT persisted as it contains dynamic data.
+    """
+    return f"""You are a helpful financial assistant. You help users understand their finances, track their expenses and create transactions.
+Current date is {datetime.now().strftime("%d-%m-%Y")}
 You have access to tools to:
 - Analyze spending patterns and trends
 - View budgets and budget utilization
@@ -95,6 +102,50 @@ When answering questions:
 5. Keep it short and concise.
 Remember: Always use tools to get real data rather than making assumptions. If a user asks about their spending, use the analytics tools to get actual numbers.
 """
+
+
+def load_conversation_history(
+    db: Session,
+    conversation_id: Optional[int],
+    user_id: int,
+    limit: int = 10  # Last 10 messages = 5 exchanges
+) -> list:
+    """
+    Load conversation history from database.
+    Returns messages in LangChain format, excluding system prompts.
+
+    Args:
+        db: Database session
+        conversation_id: Conversation ID (None for new conversation)
+        user_id: User ID for security check
+        limit: Maximum number of messages to load (default 10 = 5 exchanges)
+
+    Returns:
+        List of messages in LangChain format
+    """
+    if not conversation_id:
+        return []
+
+    # Verify conversation belongs to user
+    conversation = ConversationCrud.get_by_id(db, conversation_id, user_id)
+    if not conversation:
+        logger.warning(f"Conversation {conversation_id} not found or doesn't belong to user {user_id}")
+        return []
+
+    # Load last N messages (excluding system prompts as they're regenerated)
+    messages = MessageCrud.get_conversation_messages(db, conversation_id, limit=limit)
+
+    # Convert to LangChain format
+    history = []
+    for msg in messages:
+        if msg.role != "system":  # Skip system prompts
+            history.append({
+                "role": msg.role,
+                "content": msg.content
+            })
+
+    logger.info(f"Loaded {len(history)} messages from conversation {conversation_id}")
+    return history
 
 
 # partial user context tools for ai, instead of json use yaml/csv/plain text to save tokens while providing same data
@@ -164,16 +215,22 @@ def load_user_context(db: Session, user_id: int, account_id: int) -> UserContext
 
 
 async def chat_stream(
-    message: str, user_id: int, account_id: int, db: Session
+    message: str,
+    user_id: int,
+    account_id: int,
+    db: Session,
+    conversation_id: Optional[int] = None
 ) -> AsyncGenerator[Dict[str, Any], None]:
     """
     Stream chat responses with tool execution updates.
+    Handles conversation persistence and history loading.
 
     Args:
         message: User's message
         user_id: Current user ID
         account_id: Current account ID
         db: Database session
+        conversation_id: Optional conversation ID (creates new if None)
 
     Yields:
         Event dictionaries with different types for streaming
@@ -192,9 +249,28 @@ async def chat_stream(
         extra={
             "user_id": user_id,
             "account_id": account_id,
+            "conversation_id": conversation_id,
             "message_length": len(message),
         },
     )
+
+    # Create or load conversation
+    is_new_conversation = conversation_id is None
+    if is_new_conversation:
+        conversation = ConversationCrud.create(db, user_id, title="New Conversation")
+        conversation_id = conversation.id
+        logger.info(f"Created new conversation {conversation_id}")
+    else:
+        conversation = ConversationCrud.get_by_id(db, conversation_id, user_id)
+        if not conversation:
+            # Conversation not found, create new one
+            conversation = ConversationCrud.create(db, user_id, title="New Conversation")
+            conversation_id = conversation.id
+            is_new_conversation = True
+            logger.warning(f"Conversation not found, created new one: {conversation_id}")
+
+    # Load conversation history (last 10 messages = 5 exchanges)
+    conversation_history = load_conversation_history(db, conversation_id, user_id, limit=10)
 
     # Load user context
     user_context = load_user_context(db, user_id, account_id)
@@ -209,15 +285,22 @@ async def chat_stream(
         },
     )
 
+    # Persist user message
+    MessageCrud.create(db, conversation_id, "user", message)
+    logger.info(f"Persisted user message to conversation {conversation_id}")
+
     # Create the assistant graph
     graph = create_assistant_graph(db, user_id, account_id, user_context.model_dump())
 
-    # Build initial state
+    # Build initial state with conversation history
+    messages = [
+        {"role": "system", "content": get_system_prompt()},
+        *conversation_history,  # Include conversation history
+        {"role": "user", "content": message},
+    ]
+
     initial_state: AssistantState = {
-        "messages": [
-            {"role": "system", "content": SYSTEM_PROMPT},
-            {"role": "user", "content": message},
-        ],
+        "messages": messages,
         "account_id": account_id,
         "user_id": user_id,
         "user_context": user_context.model_dump(),
@@ -241,6 +324,9 @@ async def chat_stream(
 
     # Yield thinking event
     yield {"type": "thinking"}
+
+    # Buffer to accumulate assistant response for persistence
+    assistant_response_buffer = []
 
     graph_iterator = None
     try:
@@ -370,6 +456,9 @@ async def chat_stream(
 
                 # Only yield if there's actual content
                 if content_str:
+                    # Buffer content for persistence
+                    assistant_response_buffer.append(content_str)
+
                     yield {
                         "type": "message_chunk",
                         "content": content_str,
@@ -386,6 +475,24 @@ async def chat_stream(
                 # Send final marker to signal completion
                 # Don't send content here as it was already streamed via on_chat_model_stream
                 yield {"type": "message_chunk", "content": "", "is_final": True}
+
+        # Persist assistant response to database
+        if assistant_response_buffer:
+            full_response = "".join(assistant_response_buffer)
+            MessageCrud.create(db, conversation_id, "assistant", full_response)
+            logger.info(f"Persisted assistant response to conversation {conversation_id}")
+
+        # Generate and update conversation title if this is a new conversation
+        if is_new_conversation:
+            try:
+                title = generate_conversation_title(message)
+                ConversationCrud.update_title(db, conversation_id, user_id, title)
+                logger.info(f"Generated title for conversation {conversation_id}: {title}")
+            except Exception as e:
+                logger.error(f"Failed to generate title: {e}", exc_info=True)
+
+        # Yield conversation_id for frontend to track
+        yield {"type": "conversation_id", "conversation_id": conversation_id}
 
     except asyncio.CancelledError:
         logger.info(

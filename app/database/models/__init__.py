@@ -9,6 +9,7 @@ from .account import Account
 from .reminder import Reminder
 from .savings_goal import SavingsGoal
 from .savings_transaction import SavingsTransaction
+from .conversation import Conversation, Message
 
 __all__ = [
     'Budget',
@@ -24,5 +25,7 @@ __all__ = [
     'Account',
     'Reminder',
     'SavingsGoal',
-    'SavingsTransaction'
+    'SavingsTransaction',
+    'Conversation',
+    'Message'
 ]

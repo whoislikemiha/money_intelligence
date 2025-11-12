@@ -1,17 +1,25 @@
 """FastAPI router for the financial assistant"""
 
 import asyncio
-from fastapi import APIRouter, Depends, Request
+from fastapi import APIRouter, Depends, Request, HTTPException
 from fastapi.responses import StreamingResponse
 from sqlalchemy.orm import Session
 import json
 import logging
+from typing import List
 
 from app.auth.dependencies import get_current_active_user
 from app.database.database import get_db
 from app.schemas.user import User
+from app.schemas.conversation import (
+    Conversation,
+    ConversationWithMessages,
+    ConversationUpdate,
+    ConversationList
+)
 from app.assistant.schemas.chat import ChatRequest, ChatResponse
 from app.assistant.service import chat, chat_stream
+from app.crud.conversation_crud import ConversationCrud, MessageCrud
 
 logger = logging.getLogger(__name__)
 
@@ -71,7 +79,8 @@ async def assistant_chat_stream(
                 message=chat_request.message,
                 user_id=current_user.id,
                 account_id=chat_request.account_id,
-                db=db
+                db=db,
+                conversation_id=chat_request.conversation_id
             )
 
             # Stream events while monitoring for client disconnection
@@ -134,3 +143,79 @@ async def assistant_chat_stream(
             "X-Accel-Buffering": "no",  # Disable nginx buffering
         }
     )
+
+
+# Conversation management endpoints
+
+@router.get("/conversations", response_model=ConversationList)
+async def get_conversations(
+    limit: int = 50,
+    offset: int = 0,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_active_user),
+):
+    """
+    Get all conversations for the current user.
+    Returns conversations ordered by most recent first.
+    """
+    conversations = ConversationCrud.get_all(db, current_user.id, limit, offset)
+    total = len(conversations)  # For pagination info
+
+    return ConversationList(
+        conversations=conversations,
+        total=total
+    )
+
+
+@router.get("/conversations/{conversation_id}", response_model=ConversationWithMessages)
+async def get_conversation(
+    conversation_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_active_user),
+):
+    """
+    Get a specific conversation with all its messages.
+    """
+    conversation = ConversationCrud.get_by_id(db, conversation_id, current_user.id)
+
+    if not conversation:
+        raise HTTPException(status_code=404, detail="Conversation not found")
+
+    return conversation
+
+
+@router.patch("/conversations/{conversation_id}", response_model=Conversation)
+async def update_conversation(
+    conversation_id: int,
+    update_data: ConversationUpdate,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_active_user),
+):
+    """
+    Update a conversation (currently only title).
+    """
+    conversation = ConversationCrud.update_title(
+        db, conversation_id, current_user.id, update_data.title
+    )
+
+    if not conversation:
+        raise HTTPException(status_code=404, detail="Conversation not found")
+
+    return conversation
+
+
+@router.delete("/conversations/{conversation_id}")
+async def delete_conversation(
+    conversation_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_active_user),
+):
+    """
+    Delete a conversation and all its messages.
+    """
+    success = ConversationCrud.delete(db, conversation_id, current_user.id)
+
+    if not success:
+        raise HTTPException(status_code=404, detail="Conversation not found")
+
+    return {"message": "Conversation deleted successfully"}

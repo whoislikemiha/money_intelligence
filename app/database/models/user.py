@@ -18,6 +18,7 @@ class User(BaseDbModel):
     tags = relationship("Tag", back_populates="user", cascade="all, delete-orphan")
     reminders = relationship("Reminder", back_populates="user", cascade="all, delete-orphan")
     savings_goals = relationship("SavingsGoal", back_populates="user", cascade="all, delete-orphan")
+    conversations = relationship("Conversation", back_populates="user", cascade="all, delete-orphan")
 
     def __repr__(self):
         return f"<User(name={self.name}, id={self.id}, email={self.email})>"

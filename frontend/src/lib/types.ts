@@ -272,13 +272,44 @@ export interface ToolCall {
 export interface ChatRequest {
   message: string;
   account_id: number;
-  conversation_id?: string;
+  conversation_id?: number;
 }
 
 export interface ChatResponse {
   message: string;
-  conversation_id: string;
+  conversation_id: number;
   tool_calls?: ToolCall[];
+}
+
+// Conversation types
+export interface Message {
+  id: number;
+  conversation_id: number;
+  role: 'user' | 'assistant' | 'system';
+  content: string;
+  tool_calls_summary?: string;
+  created_at: string;
+}
+
+export interface Conversation {
+  id: number;
+  user_id: number;
+  title: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface ConversationWithMessages extends Conversation {
+  messages: Message[];
+}
+
+export interface ConversationList {
+  conversations: Conversation[];
+  total: number;
+}
+
+export interface ConversationUpdate {
+  title: string;
 }
 
 // SSE Event types
@@ -288,5 +319,6 @@ export type ChatEvent =
   | { type: 'tool_end'; tool_name: string; tool_output: any; success: boolean; error?: string }
   | { type: 'message_chunk'; content: string; is_final: boolean }
   | { type: 'transaction_previews'; transactions: TransactionPreview[]; count: number }
-  | { type: 'done'; conversation_id: string }
+  | { type: 'conversation_id'; conversation_id: number }
+  | { type: 'done'; conversation_id?: number }
   | { type: 'error'; message: string; recoverable: boolean };

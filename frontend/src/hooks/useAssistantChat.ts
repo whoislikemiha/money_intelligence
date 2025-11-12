@@ -1,23 +1,61 @@
 import { useState, useCallback, useEffect, useRef } from 'react';
-import { assistantApi } from '@/lib/api';
-import { ChatMessage, ChatEvent, ToolCall, TransactionPreview } from '@/lib/types';
+import { assistantApi, conversationApi } from '@/lib/api';
+import { ChatMessage, ChatEvent, ToolCall, TransactionPreview, Message } from '@/lib/types';
 
 interface UseAssistantChatProps {
   accountId: number;
+  conversationId?: number;
+  onConversationChange?: (conversationId: number) => void;
 }
 
-export function useAssistantChat({ accountId }: UseAssistantChatProps) {
+export function useAssistantChat({ accountId, conversationId, onConversationChange }: UseAssistantChatProps) {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [isLoadingHistory, setIsLoadingHistory] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [currentAssistantMessage, setCurrentAssistantMessage] = useState<string>('');
   const [currentToolCalls, setCurrentToolCalls] = useState<ToolCall[]>([]);
   const [pendingTransactions, setPendingTransactions] = useState<TransactionPreview[] | null>(null);
+  const [currentConversationId, setCurrentConversationId] = useState<number | undefined>(conversationId);
 
   const streamCleanupRef = useRef<(() => void) | null>(null);
   const isFinalizingRef = useRef(false);
   const currentMessageRef = useRef<string>('');
   const currentToolCallsRef = useRef<ToolCall[]>([]);
+
+  // Load conversation history when conversation ID changes
+  useEffect(() => {
+    if (conversationId) {
+      loadConversationHistory(conversationId);
+    } else {
+      // New conversation - clear messages
+      setMessages([]);
+    }
+    setCurrentConversationId(conversationId);
+  }, [conversationId]);
+
+  const loadConversationHistory = async (convId: number) => {
+    try {
+      setIsLoadingHistory(true);
+      const conversation = await conversationApi.getById(convId);
+
+      // Convert Message[] to ChatMessage[]
+      const chatMessages: ChatMessage[] = conversation.messages
+        .filter(msg => msg.role !== 'system') // Exclude system messages
+        .map((msg: Message) => ({
+          role: msg.role as 'user' | 'assistant',
+          content: msg.content,
+          timestamp: new Date(msg.created_at),
+        }));
+
+      setMessages(chatMessages);
+    } catch (error) {
+      console.error('Failed to load conversation history:', error);
+      setError('Failed to load conversation history');
+    } finally {
+      setIsLoadingHistory(false);
+    }
+  };
 
   // Cleanup on unmount
   useEffect(() => {
@@ -53,6 +91,7 @@ export function useAssistantChat({ accountId }: UseAssistantChatProps) {
       {
         message,
         account_id: accountId,
+        conversation_id: currentConversationId,
       },
       (event: ChatEvent) => {
         handleEvent(event);
@@ -60,7 +99,7 @@ export function useAssistantChat({ accountId }: UseAssistantChatProps) {
     );
 
     streamCleanupRef.current = cleanup;
-  }, [accountId]);
+  }, [accountId, currentConversationId]);
 
   const handleEvent = (event: ChatEvent) => {
     switch (event.type) {
@@ -167,6 +206,14 @@ export function useAssistantChat({ accountId }: UseAssistantChatProps) {
         setPendingTransactions(event.transactions);
         break;
 
+      case 'conversation_id':
+        // Update conversation ID from backend
+        setCurrentConversationId(event.conversation_id);
+        if (onConversationChange) {
+          onConversationChange(event.conversation_id);
+        }
+        break;
+
       case 'done':
         // Stream complete
         setIsLoading(false);
@@ -199,8 +246,10 @@ export function useAssistantChat({ accountId }: UseAssistantChatProps) {
     currentAssistantMessage,
     currentToolCalls,
     isLoading,
+    isLoadingHistory,
     error,
     pendingTransactions,
+    conversationId: currentConversationId,
     sendMessage,
     clearMessages,
     dismissTransactions,

@@ -59,6 +59,13 @@ export class ApiClient {
     });
   }
 
+  async patch<T>(endpoint: string, data: any): Promise<T> {
+    return this.request<T>(endpoint, {
+      method: 'PATCH',
+      body: JSON.stringify(data),
+    });
+  }
+
   async delete<T>(endpoint: string): Promise<T> {
     return this.request<T>(endpoint, { method: 'DELETE' });
   }
@@ -66,7 +73,7 @@ export class ApiClient {
 
 export const apiClient = new ApiClient();
 
-import { Account, AccountCreate, AccountUpdate, MonthlyStats, Transaction, TransactionCreate, TransactionUpdate, Category, CategoryCreate, CategoryUpdate, Budget, BudgetCreate, BudgetUpdate, Tag, TagCreate, TagUpdate, Reminder, ReminderCreate, ReminderUpdate, SavingsGoal, SavingsGoalCreate, SavingsGoalUpdate, SavingsTransaction, SavingsTransactionCreate, AgentProcessRequest, AgentProcessResponse } from './types';
+import { Account, AccountCreate, AccountUpdate, MonthlyStats, Transaction, TransactionCreate, TransactionUpdate, Category, CategoryCreate, CategoryUpdate, Budget, BudgetCreate, BudgetUpdate, Tag, TagCreate, TagUpdate, Reminder, ReminderCreate, ReminderUpdate, SavingsGoal, SavingsGoalCreate, SavingsGoalUpdate, SavingsTransaction, SavingsTransactionCreate, AgentProcessRequest, AgentProcessResponse, Conversation, ConversationList, ConversationWithMessages, ConversationUpdate } from './types';
 
 // Account API functions
 export const accountApi = {
@@ -429,4 +436,19 @@ export const assistantApi = {
       controller.abort();
     };
   },
+};
+
+// Conversation API functions
+export const conversationApi = {
+  getAll: (limit = 50, offset = 0): Promise<ConversationList> =>
+    apiClient.get(`/assistant/conversations?limit=${limit}&offset=${offset}`),
+
+  getById: (id: number): Promise<ConversationWithMessages> =>
+    apiClient.get(`/assistant/conversations/${id}`),
+
+  update: (id: number, data: ConversationUpdate): Promise<Conversation> =>
+    apiClient.patch(`/assistant/conversations/${id}`, data),
+
+  delete: (id: number): Promise<void> =>
+    apiClient.delete(`/assistant/conversations/${id}`),
 };

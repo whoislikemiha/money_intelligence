@@ -6,13 +6,13 @@ class ChatRequest(BaseModel):
     """Request to send a message to the assistant"""
     message: str
     account_id: int
-    conversation_id: Optional[str] = None  # For future multi-turn support
+    conversation_id: Optional[int] = None  # For multi-turn conversations
 
 
 class ChatResponse(BaseModel):
     """Response from the assistant"""
     message: str
-    conversation_id: str
+    conversation_id: int
     tool_calls: Optional[list[dict[str, Any]]] = None
 
 

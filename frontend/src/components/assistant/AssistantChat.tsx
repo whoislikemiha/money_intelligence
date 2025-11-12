@@ -18,21 +18,24 @@ import remarkGfm from 'remark-gfm';
 
 interface AssistantChatProps {
   accountId: number;
+  conversationId?: number;
+  onConversationChange?: (conversationId: number) => void;
 }
 
-export default function AssistantChat({ accountId }: AssistantChatProps) {
+export default function AssistantChat({ accountId, conversationId, onConversationChange }: AssistantChatProps) {
   const { user } = useAuth();
   const {
     messages,
     currentAssistantMessage,
     currentToolCalls,
     isLoading,
+    isLoadingHistory,
     error,
     pendingTransactions,
     sendMessage,
     clearMessages,
     dismissTransactions,
-  } = useAssistantChat({ accountId });
+  } = useAssistantChat({ accountId, conversationId, onConversationChange });
 
   const [categories, setCategories] = useState<Category[]>([]);
   const [tags, setTags] = useState<Tag[]>([]);
@@ -62,13 +65,8 @@ export default function AssistantChat({ accountId }: AssistantChatProps) {
     }
   };
 
-  // Clear messages when account changes
-  useEffect(() => {
-    if (prevAccountId.current !== accountId) {
-      clearMessages();
-      prevAccountId.current = accountId;
-    }
-  }, [accountId, clearMessages]);
+  // Note: We don't clear messages when account changes anymore
+  // Conversations can span multiple accounts
 
   const handleTransactionComplete = () => {
     try {
@@ -138,7 +136,13 @@ export default function AssistantChat({ accountId }: AssistantChatProps) {
           onScroll={handleScroll}
           className="flex-1 overflow-y-auto mb-4 space-y-4"
         >
-          {messages.length === 0 && !currentAssistantMessage && !isLoading && (
+          {isLoadingHistory && (
+            <div className="flex items-center justify-center h-full">
+              <Loader2 className="h-8 w-8 animate-spin text-primary" />
+            </div>
+          )}
+
+          {!isLoadingHistory && messages.length === 0 && !currentAssistantMessage && !isLoading && (
             <div className="flex flex-col items-center justify-center h-full text-center p-8">
               <Sparkles className="h-12 w-12 text-muted-foreground mb-4" />
               <h3 className="text-lg font-semibold mb-2">Welcome to your Financial Assistant</h3>
