@@ -15,8 +15,9 @@ AI-powered personal finance management with conversational insights and intellig
 
 **Backend**
 - FastAPI (Python)
-- LangGraph for agentic AI workflows
+- LangChain & LangGraph
 - SQLAlchemy ORM
+- SQLite 
 
 **Frontend**
 - Next.js 15 with React 19
@@ -30,57 +31,3 @@ AI-powered personal finance management with conversational insights and intellig
 - Node.js 18+
 - PostgreSQL (or your preferred database)
 
-### Backend Setup
-
-```bash
-# Create virtual environment
-python -m venv .venv
-source .venv/bin/activate  # On Windows: .venv\Scripts\activate
-
-# Install dependencies
-pip install -r requirements.txt
-
-# Set up environment variables
-cp .env.example .env
-# Edit .env with your database credentials and API keys
-
-# Run the server
-fastapi dev app/main.py
-
-```
-
-API will be available at `http://localhost:8000`
-
-### Frontend Setup
-
-```bash
-cd frontend
-
-# Install dependencies
-npm install
-
-# Run development server
-npm run dev
-```
-
-Frontend will be available at `http://localhost:3000`
-
-## API Documentation
-
-Once the backend is running, visit:
-- Swagger UI: `http://localhost:8000/docs`
-- ReDoc: `http://localhost:8000/redoc`
-
-## Project Structure
-
-```
-├── app/
-│   ├── agent/          # LangGraph AI agent implementation
-│   ├── routers/        # FastAPI route handlers
-│   ├── crud/           # Database operations
-│   ├── schemas/        # Pydantic data models
-│   └── database/       # Database configuration and models
-└── frontend/
-    ├── app/            # Next.js app directory
-    └── components/     # React components
-```
