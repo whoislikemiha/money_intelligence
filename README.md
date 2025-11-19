@@ -1,13 +1,12 @@
 # Money Intelligence
 
-AI-powered personal finance management with conversational insights and intelligent transaction processing. Chat with your finances, upload receipts, or simply describe transactions in natural language.
+A personal finance and expense tracking application, with Agentic AI capabilities to aid the user in creating, maintaining and understanding his personal finance data.
 
 ## Features
 
 - **AI Transaction Input** - Create transactions from text, audio, or images (receipts/screenshots)
 - **Conversational Finance Agent** - Chat with your finances for insights and personalized recommendations
 - **Transaction Management** - Track and categorize all your financial activities
-- **Multi-Account Support** - Manage multiple accounts in one place
 - **Budget Tracking** - Set and monitor budgets across categories
 - **Flexible Organization** - Custom tags and categories for personalized organization
 
