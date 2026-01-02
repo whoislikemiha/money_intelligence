@@ -240,10 +240,10 @@ export default function SpendingBreakdownChart({
   }
 
   return (
-    <div className="bg-card border rounded-lg p-6">
+    <div className="bg-card border rounded-lg p-6 h-fit">
       <div className="flex justify-between items-center mb-4">
-        <h3 className="text-lg font-semibold">
-          Category Spending Breakdown - {PERIOD_LABELS[selectedPeriod]}
+        <h3 className="text-sm font-semibold">
+          Expenses per Category - {PERIOD_LABELS[selectedPeriod]}
         </h3>
       </div>
 
@@ -261,7 +261,7 @@ export default function SpendingBreakdownChart({
         ))}
       </div>
 
-      <div className="h-80">
+      <div className="h-80 flex flex-col">
         <ResponsiveContainer width="100%" height="100%">
           <PieChart>
             <Pie
@@ -270,8 +270,8 @@ export default function SpendingBreakdownChart({
               cy="50%"
               labelLine={false}
               label={balancesVisible ? (CustomLabel as any) : false}
-              outerRadius={150}
-              innerRadius={30}
+              outerRadius={120}
+              innerRadius={20}
               fill="#8884d8"
               dataKey="total"
               nameKey="category_name"
@@ -291,7 +291,6 @@ export default function SpendingBreakdownChart({
               verticalAlign="middle"
               align="right"
               layout='vertical'
-              height={36}
               formatter={(value: string) => {
                 const item = data.find(d => d.category_name === value);
                 if (!item) return value;
@@ -300,17 +299,15 @@ export default function SpendingBreakdownChart({
             />
           </PieChart>
         </ResponsiveContainer>
-      </div>
-      {balancesVisible && (
-        <div className="mt-4 border-t pt-4">
-          <div className="text-right">
-            <p className="text-sm text-muted-foreground">Total Spending</p>
-            <p className="text-xl font-bold">
+        {balancesVisible && (
+          <div className="text-left w-full border-t pt-4">
+            <p className="text-xs text-muted-foreground">Total Expenses</p>
+            <p className="text-sm font-bold">
               {totalSpending.toFixed(2)} {currency}
             </p>
           </div>
-        </div>
-      )}
+        )}
+      </div>
     </div>
   );
 }

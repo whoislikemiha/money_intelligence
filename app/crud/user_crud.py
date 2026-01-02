@@ -23,14 +23,11 @@ class UserCrud:
             name=obj_in.name,
             email=obj_in.email,
             hashed_password=hashed_password,
+            onboarding_completed=False,  # New users start with onboarding incomplete
         )
         db.add(user)
         db.commit()
         db.refresh(user)
-
-        # Set up user account and default categories
-        AccountCrud.create_default_account(db, user.id, obj_in.initial_balance, obj_in.currency)
-        CategoryCrud.create_default_categories(db, user.id)
 
         return user
 

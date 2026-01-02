@@ -1,17 +1,84 @@
 from fastapi import APIRouter, Depends, Query
 from sqlalchemy.orm import Session
 from sqlalchemy import func, extract
-from datetime import datetime, date
+from datetime import datetime, date, timedelta
 from decimal import Decimal
 
 from app.auth.dependencies import get_current_active_user
 from app.database.database import get_db
 from app.database.models.transaction import Transaction
 from app.database.models.category import Category
+from app.database.models.account import Account
 from app.database.models.enums import TransactionType
 from app.schemas.user import User
 
 router = APIRouter()
+
+
+@router.get("/dashboard-summary")
+async def get_dashboard_summary(
+    account_id: int = Query(..., description="Account ID"),
+    current_user: User = Depends(get_current_active_user),
+    db: Session = Depends(get_db)
+):
+    """
+    Get dashboard summary with current balance, last 30 days income and expenses.
+    """
+    # Get account for current balance
+    account = db.query(Account).filter(
+        Account.id == account_id,
+        Account.user_id == current_user.id
+    ).first()
+
+    if not account:
+        return {
+            "current_balance": 0.0,
+            "income_last_30_days": 0.0,
+            "expenses_last_30_days": 0.0
+        }
+
+    # Calculate date range for last 30 days
+    end_date = date.today()
+    start_date = end_date - timedelta(days=30)
+
+    # Get all transactions for this account
+    all_transactions = db.query(Transaction).filter(
+        Transaction.account_id == account_id,
+        Transaction.user_id == current_user.id
+    ).all()
+
+    # Calculate current balance
+    current_balance = float(account.initial_balance)
+    for txn in all_transactions:
+        if txn.type == TransactionType.INCOME:
+            current_balance += float(txn.amount)
+        else:
+            current_balance -= float(txn.amount)
+
+    # Get last 30 days transactions
+    recent_transactions = db.query(Transaction).filter(
+        Transaction.account_id == account_id,
+        Transaction.user_id == current_user.id,
+        Transaction.date >= start_date,
+        Transaction.date <= end_date
+    ).all()
+
+    # Calculate income and expenses for last 30 days
+    income_last_30_days = sum(
+        float(txn.amount) for txn in recent_transactions
+        if txn.type == TransactionType.INCOME
+    )
+
+    expenses_last_30_days = sum(
+        float(txn.amount) for txn in recent_transactions
+        if txn.type == TransactionType.EXPENSE
+    )
+
+    return {
+        "current_balance": current_balance,
+        "income_last_30_days": income_last_30_days,
+        "expenses_last_30_days": expenses_last_30_days
+    }
 
 
 @router.get("/spending-breakdown")

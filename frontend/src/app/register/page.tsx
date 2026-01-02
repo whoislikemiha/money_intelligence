@@ -40,8 +40,16 @@ export default function RegisterPage() {
         setIsLoading(false);
         return;
       }
+
+      // Register user (without creating account/categories yet)
       await register(name, email, password, currency, balance);
-      router.push('/dashboard');
+
+      // Store initial balance and currency for onboarding completion
+      sessionStorage.setItem('onboarding_initial_balance', initialBalance);
+      sessionStorage.setItem('onboarding_currency', currency);
+
+      // Redirect to onboarding flow
+      router.push('/onboarding');
     } catch (err) {
       setError('Registration failed. Email may already be registered.');
     } finally {

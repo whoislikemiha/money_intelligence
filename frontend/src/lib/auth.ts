@@ -25,6 +25,7 @@ export interface User {
   created_at: string;
   updated_at?: string;
   is_active: boolean;
+  onboarding_completed: boolean;
 }
 
 export interface UserUpdate {

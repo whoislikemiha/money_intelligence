@@ -6,7 +6,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from app.config import settings
 from app.observability import init_phoenix, shutdown_phoenix
 
-from app.routers import auth, account, transaction, category, tag, budget, agent, reminder, savings_goal, analytics
+from app.routers import auth, account, transaction, category, tag, budget, agent, reminder, savings_goal, analytics, onboarding
 from app.assistant import router as assistant_router
 
 # Configure logging
@@ -43,6 +43,7 @@ app.add_middleware(
 )
 
 app.include_router(auth.router, prefix=settings.API_V1_STR, tags=["authentication"])
+app.include_router(onboarding.router, prefix=f"{settings.API_V1_STR}/onboarding", tags=["onboarding"])
 app.include_router(account.router, prefix=f"{settings.API_V1_STR}/account", tags=["account"])
 app.include_router(transaction.router, prefix=f"{settings.API_V1_STR}/transaction", tags=["transaction"])
 

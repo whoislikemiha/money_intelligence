@@ -3,7 +3,7 @@
 import { useAuth } from '@/contexts/AuthContext';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
-import { accountApi, categoryApi } from '@/lib/api';
+import { accountApi, categoryApi, apiClient } from '@/lib/api';
 import { TransactionType, Category, Account, MonthlyStats } from '@/lib/types';
 import TransactionManager from '@/components/TransactionManager';
 import BudgetManager from '@/components/BudgetManager';
@@ -14,12 +14,19 @@ import { Navbar } from '@/components/navbar';
 import { Button } from '@/components/ui/button';
 import { Eye, EyeOff, List } from 'lucide-react';
 
+interface DashboardSummary {
+  current_balance: number;
+  income_last_30_days: number;
+  expenses_last_30_days: number;
+}
+
 export default function DashboardPage() {
   const { user, logout, loading } = useAuth();
   const router = useRouter();
   const [accounts, setAccounts] = useState<Account[]>([]);
   const [selectedAccount, setSelectedAccount] = useState<Account | null>(null);
   const [monthlyStats, setMonthlyStats] = useState<MonthlyStats | null>(null);
+  const [dashboardSummary, setDashboardSummary] = useState<DashboardSummary | null>(null);
   const [accountLoading, setAccountLoading] = useState(false);
   const [showCreateAccount, setShowCreateAccount] = useState(false);
   const [newAccountName, setNewAccountName] = useState('');
@@ -75,6 +82,8 @@ export default function DashboardPage() {
   useEffect(() => {
     if (!loading && !user) {
       router.push('/login');
+    } else if (!loading && user && !user.onboarding_completed) {
+      router.push('/onboarding');
     }
   }, [user, loading, router]);
 
@@ -125,6 +134,7 @@ export default function DashboardPage() {
   useEffect(() => {
     if (selectedAccount) {
       loadMonthlyStats();
+      loadDashboardSummary();
     }
   }, [selectedAccount]);
 
@@ -136,6 +146,19 @@ export default function DashboardPage() {
       setMonthlyStats(statsData);
     } catch (error) {
       console.error('Failed to load monthly stats:', error);
+    }
+  };
+
+  const loadDashboardSummary = async () => {
+    if (!selectedAccount) return;
+
+    try {
+      const summary = await apiClient.get<DashboardSummary>(
+        `/analytics/dashboard-summary?account_id=${selectedAccount.id}`
+      );
+      setDashboardSummary(summary);
+    } catch (error) {
+      console.error('Failed to load dashboard summary:', error);
     }
   };
 
@@ -254,67 +277,16 @@ export default function DashboardPage() {
               </div>
             </div>
           </div>
-        ) : selectedAccount && monthlyStats ? (
+        ) : selectedAccount && monthlyStats && dashboardSummary ? (
           <div className="flex flex-col gap-6 h-full overflow-hidden">
-            {/* Transaction Actions */}
-            <div className="flex justify-between items-center ">
+            {/* Welcome Banner */}
+            <div className="bg-gradient-to-r from-primary/10 to-transparent border border-primary/20 rounded-lg px-6 py-4">
+              <h2 className="text-2xl font-bold">Welcome, {user?.name}!</h2>
+              <p className="text-muted-foreground mt-1">Here's your financial overview</p>
+            </div>
 
-              {/* Balance Card */}
-              <div className="flex items-center gap-2">
-                <div className="bg-card border rounded-lg flex-shrink-0 overflow-hidden">
-                  <div className="flex">
-                    <div
-                      className={`p-6 cursor-pointer transition-all hover:bg-accent ${balanceViewType === 'all' ? 'bg-accent ring-2 ring-primary' : ''
-                        }`}
-                      onClick={() => {
-                        setBalanceViewType(balanceViewType === 'all' ? null : 'all');
-                        setSelectedCategoryId(null);
-                      }}
-                    >
-                      <p className="text-sm text-muted-foreground">Current Balance</p>
-                      <p className="text-xl font-bold mt-1">
-                        {formatBalance(Number(selectedAccount.current_balance), selectedAccount.currency)}
-                      </p>
-                    </div>
-                    <div className="border-l" />
-                    <div
-                      className={`p-6 cursor-pointer transition-all hover:bg-accent ${balanceViewType === 'income' ? 'bg-accent ring-2 ring-primary' : ''
-                        }`}
-                      onClick={() => {
-                        setBalanceViewType(balanceViewType === 'income' ? null : 'income');
-                        setSelectedCategoryId(null);
-                      }}
-                    >
-                      <p className="text-sm text-muted-foreground">This Month Income</p>
-                      <p className="text-xl font-bold text-green-600 dark:text-green-400 mt-1">
-                        {formatBalance(Number(monthlyStats.monthly_income), selectedAccount.currency)}
-                      </p>
-                    </div>
-                    <div className="border-l" />
-                    <div
-                      className={`p-6 cursor-pointer transition-all hover:bg-accent ${balanceViewType === 'expense' ? 'bg-accent ring-2 ring-primary' : ''
-                        }`}
-                      onClick={() => {
-                        setBalanceViewType(balanceViewType === 'expense' ? null : 'expense');
-                        setSelectedCategoryId(null);
-                      }}
-                    >
-                      <p className="text-sm text-muted-foreground">This Month Expenses</p>
-                      <p className="text-xl font-bold text-red-600 dark:text-red-400 mt-1">
-                        {formatBalance(Number(monthlyStats.monthly_expenses), selectedAccount.currency)}
-                      </p>
-                    </div>
-                  </div>
-                </div>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={toggleBalancesVisibility}
-                  title={balancesVisible ? 'Hide balances' : 'Show balances'}
-                >
-                  {balancesVisible ? <Eye className="h-4 w-4" /> : <EyeOff className="h-4 w-4" />}
-                </Button>
-              </div>
+            {/* Transaction Actions */}
+            <div className="flex justify-between items-center">
               <div className="flex gap-2 justify-end flex-shrink-0">
                 <Button
                   variant="outline"
@@ -331,8 +303,73 @@ export default function DashboardPage() {
                   onTransactionCreated={loadAccounts}
                 />
               </div>
-
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={toggleBalancesVisibility}
+                title={balancesVisible ? 'Hide balances' : 'Show balances'}
+              >
+                {balancesVisible ? <Eye className="h-4 w-4" /> : <EyeOff className="h-4 w-4" />}
+              </Button>
             </div>
+
+            {/* New Balance Cards Row */}
+            <div className="flex flex-row gap-4">
+              <div className='hidden xl:flex flex-col gap-2  '>
+                <div
+                  className={`bg-card border rounded-lg p-6 cursor-pointer transition-all hover:bg-accent `}
+                  onClick={() => {
+                    setBalanceViewType(balanceViewType === 'all' ? null : 'all');
+                    setSelectedCategoryId(null);
+                  }}
+                >
+                  <p className="text-sm text-muted-foreground mb-2">Current Estimated Balance</p>
+                  <p className="text-base lg:text-xl font-bold">
+                    {formatBalance(dashboardSummary.current_balance, selectedAccount.currency)}
+                  </p>
+                </div>
+
+                <div
+                  className={`bg-card border rounded-lg p-6 cursor-pointer transition-all hover:bg-accent `}
+                  onClick={() => {
+                    setBalanceViewType(balanceViewType === 'income' ? null : 'income');
+                    setSelectedCategoryId(null);
+                  }}
+                >
+                  <p className="text-sm text-muted-foreground mb-2">Income (Last 30 Days)</p>
+                  <p className="text-xl font-bold text-green-600 dark:text-green-400">
+                    {formatBalance(dashboardSummary.income_last_30_days, selectedAccount.currency)}
+                  </p>
+                </div>
+
+                <div
+                  className={`bg-card border rounded-lg p-6 cursor-pointer transition-all hover:bg-accent `}
+                  onClick={() => {
+                    setBalanceViewType(balanceViewType === 'expense' ? null : 'expense');
+                    setSelectedCategoryId(null);
+                  }}
+                >
+                  <p className="text-sm text-muted-foreground mb-2">Expenses (Last 30 Days)</p>
+                  <p className="text-xl font-bold text-red-600 dark:text-red-400">
+                    {formatBalance(dashboardSummary.expenses_last_30_days, selectedAccount.currency)}
+                  </p>
+                </div>
+              </div>
+              <div className='w-fit flex gap-4'>
+
+                <SpendingBreakdownChart
+                  accountId={selectedAccount.id}
+                  currency={selectedAccount.currency}
+                  balancesVisible={balancesVisible}
+                />
+                <SpendingTimelineChart
+                  accountId={selectedAccount.id}
+                  currency={selectedAccount.currency}
+                  balancesVisible={balancesVisible}
+                />
+              </div>
+            </div>
+
             {/* Balance Card and Budgets Row */}
             <div className="flex gap-6 flex-shrink-0">
 
@@ -350,16 +387,6 @@ export default function DashboardPage() {
 
             {/* Charts Section */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 flex-shrink-0">
-              <SpendingBreakdownChart
-                accountId={selectedAccount.id}
-                currency={selectedAccount.currency}
-                balancesVisible={balancesVisible}
-              />
-              <SpendingTimelineChart
-                accountId={selectedAccount.id}
-                currency={selectedAccount.currency}
-                balancesVisible={balancesVisible}
-              />
             </div>
 
             {/* Transactions - Show when budget or balance section selected */}

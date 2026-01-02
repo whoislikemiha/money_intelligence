@@ -26,6 +26,10 @@ class TagCrud:
         return db.query(Tag).filter(Tag.id == tag_id, Tag.user_id == user_id).first()
 
     @staticmethod
+    def get_tag_by_name(db: Session, user_id: int, name: str) -> Tag | None:
+        return db.query(Tag).filter(Tag.user_id == user_id, Tag.name == name).first()
+
+    @staticmethod
     def update_tag(db: Session, tag_id: int, user_id: int, tag_update: TagUpdate) -> Tag | None:
         tag = db.query(Tag).filter(Tag.id == tag_id, Tag.user_id == user_id).first()
         if not tag:

@@ -162,7 +162,7 @@ export default function TransactionActions({ accountId, onTransactionCreated }: 
       />
       <Dialog open={dialogOpen} onOpenChange={handleDialogClose}>
         <DialogTrigger asChild>
-          <Button>
+          <Button variant='outline'>
             <Plus className="mr-2 h-4 w-4" />
             Add Transaction
           </Button>
@@ -293,11 +293,10 @@ export default function TransactionActions({ accountId, onTransactionCreated }: 
                         <Badge
                           key={tag.id}
                           variant="outline"
-                          className={`cursor-pointer transition-all ${
-                            isSelected
-                              ? 'ring-2 ring-primary ring-offset-1 bg-primary/10'
-                              : 'hover:bg-accent'
-                          }`}
+                          className={`cursor-pointer transition-all ${isSelected
+                            ? 'ring-2 ring-primary ring-offset-1 bg-primary/10'
+                            : 'hover:bg-accent'
+                            }`}
                           onClick={() => {
                             setFormData({
                               ...formData,

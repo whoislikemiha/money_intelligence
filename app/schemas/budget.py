@@ -26,7 +26,7 @@ class BudgetBase(BaseModel, BudgetValidationMixin):
     notes: Optional[str] = None
 
 class BudgetCreate(BudgetBase):
-    user_id: int
+    pass  # user_id is provided by the authenticated user, not the client
 
 
 class BudgetUpdate(BaseModel, BudgetValidationMixin):

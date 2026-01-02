@@ -24,6 +24,7 @@ class UserInDB(UserBase):
     created_at: datetime
     updated_at: Optional[datetime] = None
     is_active: bool
+    onboarding_completed: bool
     model_config = ConfigDict(from_attributes=True)
 
 

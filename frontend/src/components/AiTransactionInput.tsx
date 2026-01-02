@@ -195,7 +195,7 @@ export default function AiTransactionInput({
   return (
     <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
       <Button
-        variant="outline"
+        variant="default"
         onClick={() => setDialogOpen(true)}
       >
         <Sparkles className="mr-2 h-4 w-4" />
@@ -307,17 +307,15 @@ export default function AiTransactionInput({
                       return (
                         <TableRow
                           key={index}
-                          className={`cursor-pointer transition-all duration-300 ${
-                            isSelected ? 'bg-accent/50' : 'opacity-50'
-                          }`}
+                          className={`cursor-pointer transition-all duration-300 ${isSelected ? 'bg-accent/50' : 'opacity-50'
+                            }`}
                           onClick={() => togglePreview(index)}
                         >
                           <TableCell>
-                            <div className={`flex items-center justify-center w-6 h-6 rounded border-2 ${
-                              isSelected
-                                ? 'bg-primary border-primary text-primary-foreground'
-                                : 'border-muted-foreground'
-                            }`}>
+                            <div className={`flex items-center justify-center w-6 h-6 rounded border-2 ${isSelected
+                              ? 'bg-primary border-primary text-primary-foreground'
+                              : 'border-muted-foreground'
+                              }`}>
                               {isSelected && <Check className="h-4 w-4" />}
                             </div>
                           </TableCell>
@@ -331,9 +329,8 @@ export default function AiTransactionInput({
                               <TrendingDown className="h-4 w-4 text-red-600" />
                             )}
                           </TableCell>
-                          <TableCell className={`font-semibold ${
-                            isIncome ? 'text-green-600' : 'text-red-600'
-                          }`}>
+                          <TableCell className={`font-semibold ${isIncome ? 'text-green-600' : 'text-red-600'
+                            }`}>
                             {isIncome ? '+' : '-'}{Number(preview.amount).toFixed(2)}
                           </TableCell>
                           <TableCell>
